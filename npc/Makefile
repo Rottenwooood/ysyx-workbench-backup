@@ -16,7 +16,7 @@ all:
 sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	@echo "-- VERILATE & BUILD --------"
-	$(VERILATOR) --trace-fst -cc --exe --build -j top.v sim_main.cpp
+	$(VERILATOR) --trace-fst -cc --exe --build -j vsrc/top.v main.cpp
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop
 	@echo "-- DONE --------------------"
