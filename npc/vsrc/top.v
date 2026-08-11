@@ -1,9 +1,12 @@
 module top(
   input clk,
   input rst,
-  input a,
-  input b,
-  output f
+  output reg[15:0] LED
 );
-  assign f = a ^ b;
+always@(posedge clk)begin
+	if(rst || LED == 16'b1 << 15)
+		LED <= 16'b1;
+	else
+		LED <= LED << 1;
+end
 endmodule
