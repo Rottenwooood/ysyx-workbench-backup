@@ -1,9 +1,21 @@
+# 抄自example的makefile
+ifneq ($(words $(CURDIR)),1)
+  $(error Unsupported: GNU Make cannot build in directories containing spaces, build elsewhere: '$(CURDIR)')
+endif
+
+ifeq ($(VERILATOR_ROOT),)
+  VERILATOR = verilator
+else
+  export VERILATOR_ROOT
+  VERILATOR = $(VERILATOR_ROOT)/bin/verilator
+endif
+
+# ---- NVBoard 相关配置 ----
 TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?=
-NVBOARD_HOME = /home/c6h4o2/dev/ysyx-workbench/nvboard
-VERILATOR = verilator
-VERILATOR_CFLAGS += -MMD --build -cc  \
+
+VERILATOR_CFLAGS += -MMD --build -cc \
 				-O3 --x-assign fast --x-initial fast --noassert
 
 BUILD_DIR = ./build
@@ -29,29 +41,30 @@ include $(NVBOARD_HOME)/scripts/nvboard.mk
 INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 
-
-
-all:
-	@echo "Write this Makefile by your self."
-	
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
+
+default: $(BIN)
+
+all: default
+
 sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	@echo "-- VERILATE & BUILD --------"
-	# $(VERILATOR) --trace-fst -cc --exe --build -j vsrc/top.v csrc/main.cpp
-	$(BIN)
-	@$^
+	$(MAKE) $(BIN)
 	@echo "-- RUN ---------------------"
-	obj_dir/Vtop
+	@$(BIN)
 	@echo "-- DONE --------------------"
+
+run: $(BIN)
+	@$^
 
 clean:
 	rm -rf $(BUILD_DIR)
 
+.PHONY: all clean run sim
 include ../Makefile
-
