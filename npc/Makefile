@@ -44,6 +44,7 @@ sim:
 	@echo "-- VERILATE & BUILD --------"
 	# $(VERILATOR) --trace-fst -cc --exe --build -j vsrc/top.v csrc/main.cpp
 	$(BIN)
+	@$^
 	@echo "-- RUN ---------------------"
 	obj_dir/Vtop
 	@echo "-- DONE --------------------"
