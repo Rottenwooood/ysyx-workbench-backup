@@ -6,10 +6,11 @@
 
 // See also https://verilator.org/guide/latest/examples.html"
 module top(
+  input clk,
+  input rst,
   input a,
   input b,
   output f
 );
   assign f = a ^ b;
 endmodule
-
