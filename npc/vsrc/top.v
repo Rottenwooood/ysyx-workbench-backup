@@ -11,7 +11,7 @@ always@(posedge clk)begin
 	end
 	else begin
 		cnt <= cnt + 1;
-		if(cnt >= 5000000)begin
+		if(cnt >= 50000000)begin
 			if(ledr == 16'b1 << 15)
 				ledr <= 16'b1;
 			else if(ledr == 0)
