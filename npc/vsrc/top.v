@@ -3,7 +3,7 @@ module top(
   input rst,
   output reg[15:0] ledr
 );
-reg [3:0] cnt;
+reg [31:0] cnt;
 always@(posedge clk)begin
 	if(rst)begin
 		cnt <= 0;
@@ -11,7 +11,7 @@ always@(posedge clk)begin
 	end
 	else begin
 		cnt <= cnt + 1;
-		if(cnt == 4'b1111)begin
+		if(cnt >= 5000000)begin
 			if(ledr == 16'b1 << 15)
 				ledr <= 16'b1;
 			else if(ledr == 0)
