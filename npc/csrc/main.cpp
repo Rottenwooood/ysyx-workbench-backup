@@ -11,9 +11,10 @@ static void single_cycle() {
 }
 
 void reset(int n) {
-	  top->rst = 1;
-	    while (n -- > 0) single_cycle();
-	      top->rst = 0;
+	  dut.rst = 1;
+	  while (n -- > 0) single_cycle();
+	  dut.rst = 0;
+
 }
 
 int main() {
