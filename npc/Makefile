@@ -65,8 +65,12 @@ sim:
 run: $(BIN)
 	@$^
 
+lint:
+	$(VERILATOR) --lint-only $(VSRCS) \
+		--top-module $(TOPNAME) $(addprefix -I, $(INC_PATH))
+
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean run sim
+.PHONY: all clean run sim lint
 include ../Makefile
