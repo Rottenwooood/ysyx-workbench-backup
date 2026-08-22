@@ -15,7 +15,7 @@ TOPNAME = top
 INC_PATH ?=
 
 VERILATOR_CFLAGS += -MMD --build -cc \
-				-O3 --x-assign fast --x-initial fast --noassert
+				-O3 --x-assign fast --x-initial fast --noassert --trace-fst
 
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
