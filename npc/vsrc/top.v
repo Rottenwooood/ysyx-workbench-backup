@@ -12,6 +12,6 @@ module top(x,en,y);
   bcd7seg u_seg(
   	.b (y),
 	  .h (h),
-  )
+  );
   
 endmodule
