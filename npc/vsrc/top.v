@@ -1,4 +1,4 @@
-module encode42(x,en,y);
+module top(x,en,y);
   input  [3:0] x;
   input  en;
   output reg [1:0]y;
