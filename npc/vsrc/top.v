@@ -1,14 +1,19 @@
-module top(
-  input clk,
-  input rst,
-  output reg[15:0] ledr
-);
-  reg [31:0] count;
-    always @(posedge clk) begin
-	if (rst | ledr == 0) begin ledr <= 1; count <= 0; end
-	else begin
-	    if (count == 0) ledr <= {ledr[14:0], ledr[15]};
-	    count <= (count >= 5000000 ? 32'b0 : count + 1);
-	end
-end
+module top(x,en,h,y,flag);
+  input  [7:0] x;
+  input  en;
+  output reg [6:0]h;
+  output flag;
+  output reg [2:0]y;
+  decoder83 u_dec83(
+	  .x (x),
+	  .en (en),
+	  .y (y),
+    .f (flag)
+  );
+  wire [3:0]b = {1'b0,y};
+  bcd7seg u_seg(
+  	.b (b),
+	  .h (h)
+  );
+  
 endmodule
