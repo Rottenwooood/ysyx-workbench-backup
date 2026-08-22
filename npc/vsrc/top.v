@@ -8,7 +8,7 @@ module top(x,en,y);
 	  .x (x),
 	  .en (en),
 	  .y (y),
-  )
+  );
   bcd7seg u_seg(
   	.b (y),
 	  .h (h),
