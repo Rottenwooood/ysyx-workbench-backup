@@ -10,7 +10,7 @@ module top(x,en,h,flag);
 	  .y (y)
   );
   bcd7seg u_seg(
-  	.b (y),
+  	.b (4(y)),
 	  .h (h)
   );
   
