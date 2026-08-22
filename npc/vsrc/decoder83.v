@@ -7,7 +7,7 @@ module decoder83(x,en,y);
     if (en) begin
       y = 0;
       for( i = 0; i <= 7; i = i+1)
-          if(x[i] == 1)  y = i[1:0];
+          if(x[i] == 1)  y = i[2:0];
     end
     else  y = 0;
   end
