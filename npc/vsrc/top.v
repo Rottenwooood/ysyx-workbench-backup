@@ -1,4 +1,4 @@
-module top(x,en,y);
+module top(x,en,h,flag);
   input  [7:0] x;
   input  en;
   output reg [6:0]h;
