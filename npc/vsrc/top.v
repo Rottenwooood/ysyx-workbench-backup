@@ -1,18 +1,18 @@
 module top(x,en,y);
-  input  [1:0] x;
+  input  [2:0] x;
   input  en;
-  output reg [3:0]y;
+  output reg [7:0]y;
+  integer i;
 
   always @(x or en)
-    if (en)
-    begin
-      case (x)
-            2'd0 : y = 4'b0001;
-            2'd1 : y = 4'b0010;
-            2'd2 : y = 4'b0100;
-            2'd3 : y = 4'b1000;
-      endcase
+    if (en) begin
+      for( i = 0; i <= 7; i = i+1)
+          if(x == i)
+                y[i] = 1;
+          else
+                y[i] = 0;
     end
-    else  y = 4'b0000;
+    else
+      y = 8'b00000000;
 
 endmodule
