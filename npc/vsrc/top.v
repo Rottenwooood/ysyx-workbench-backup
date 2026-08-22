@@ -7,7 +7,7 @@ module top(x,en,y);
   always @(x or en)
     if (en) begin
       for( i = 0; i <= 7; i = i+1)
-          if(x == i)
+          if(x == i[2:0])
                 y[i] = 1;
           else
                 y[i] = 0;
