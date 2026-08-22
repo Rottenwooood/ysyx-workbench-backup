@@ -9,7 +9,7 @@ module top(x,en,h,flag);
 	  .en (en),
 	  .y (y)
   );
-  wire b = {0,y};
+  wire [3:0]b = {0,y};
   bcd7seg u_seg(
   	.b (b),
 	  .h (h)
