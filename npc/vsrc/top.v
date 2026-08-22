@@ -7,11 +7,11 @@ module top(x,en,y);
   decoder83 u_dec83(
 	  .x (x),
 	  .en (en),
-	  .y (y),
+	  .y (y)
   );
   bcd7seg u_seg(
   	.b (y),
-	  .h (h),
+	  .h (h)
   );
   
 endmodule
