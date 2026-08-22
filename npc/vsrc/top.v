@@ -7,9 +7,10 @@ module top(x,en,h,flag);
   decoder83 u_dec83(
 	  .x (x),
 	  .en (en),
-	  .y (y)
+	  .y (y),
+    .f (flag)
   );
-  wire [3:0]b = {0,y};
+  wire [3:0]b = {1'b0,y};
   bcd7seg u_seg(
   	.b (b),
 	  .h (h)
