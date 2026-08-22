@@ -1,4 +1,4 @@
-module decode24(x,en,y);
+module top(x,en,y);
   input  [1:0] x;
   input  en;
   output reg [3:0]y;
