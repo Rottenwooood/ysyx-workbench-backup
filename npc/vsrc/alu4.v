@@ -19,7 +19,7 @@ module alu4(
     });
     assign zero = ~(| result);
     MuxKeyWithDefault #(2, 3, 1) i1 (overflow, flag, 1'b0, {
-        3'b000, (A[3] == B[3]) && (result[3] == A[3]),
-        3'b001, (A[3] == B[3]) && (result[3] == A[3])
+        3'b000, (A[3] == B[3]) && (result[3] != A[3]),
+        3'b001, (A[3] == B[3]) && (result[3] != A[3])
     });
 endmodule
