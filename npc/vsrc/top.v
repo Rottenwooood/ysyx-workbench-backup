@@ -17,7 +17,7 @@ module top(
       .overflow (overflow),
       .result (result)
     );
-    bcd7seg u_seg(
+    hex7seg u_seg(
       .b (result),
       .h (led)
     );
