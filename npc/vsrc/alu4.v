@@ -15,7 +15,7 @@ module alu4(
         3'b100, {1'b0,A|B},
         3'b101, {1'b0,A^B},
         3'b110, {1'b0,{4{A < B}}},
-        3'b111, {1'b0,{4{A == B}}}
+        3'b111, {1'b0,{4'(A == B)}}
     });
     assign zero = ~(| result);
     MuxKeyWithDefault #(2, 3, 1) i1 (overflow, flag, 1'b0, {
