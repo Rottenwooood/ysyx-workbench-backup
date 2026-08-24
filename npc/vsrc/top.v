@@ -1,19 +1,24 @@
-module top(x,en,h,y,flag);
-  input  [7:0] x;
-  input  en;
-  output reg [6:0]h;
-  output flag;
-  output reg [2:0]y;
-  decoder83 u_dec83(
-	  .x (x),
-	  .en (en),
-	  .y (y),
-    .f (flag)
-  );
-  wire [3:0]b = {1'b0,y};
-  bcd7seg u_seg(
-  	.b (b),
-	  .h (h)
-  );
-  
+module top(
+  input [3:0] A,
+  input [3:0] B,
+  input [2:0] flag,
+  output carry,
+  output zero,
+  output overflow,
+  output [6:0] led
+);
+    wire [3:0] result;
+    alu4 alu(
+      .A (A),
+      .B (B),
+      .flag (flag),
+      .carry (carry),
+      .zero (zero),
+      .overflow (overflow),
+      .result (result)
+    );
+    hex7seg u_seg(
+      .b (result),
+      .h (led)
+    );
 endmodule

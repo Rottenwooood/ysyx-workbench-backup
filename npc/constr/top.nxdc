@@ -1,0 +1,8 @@
+top=top
+A (SW7, SW6, SW5, SW4)
+B (SW3, SW2, SW1, SW0)
+flag (SW10,SW9,SW8)
+carry (LD0)
+zero (LD1)
+overflow (LD2)
+led (SEG0A, SEG0B, SEG0C, SEG0D, SEG0E, SEG0F, SEG0G)
