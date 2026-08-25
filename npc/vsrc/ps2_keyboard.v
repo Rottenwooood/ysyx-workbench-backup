@@ -23,7 +23,7 @@ module ps2_keyboard(clk,resetn,ps2_clk,ps2_data,word_cnt,buffer);
                     (ps2_data)       &&  // stop bit
                     (^buffer[9:1])) begin      // odd  parity
                     $display("receive %x", buffer[8:1]);
-                    if(last_buffer[8:1] == 8'hf0 && buffer[8:1] == 8'hf0) word_cnt <= word_cnt + 1;
+                    if(last_buffer[8:1] == 8'hf0) word_cnt <= word_cnt + 1;
                     last_buffer <= buffer;
                 end
                 count <= 0;     // for next
