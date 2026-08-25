@@ -3,7 +3,9 @@ module top(
   output [6:0] led1,
   output [6:0] led2,
   output [6:0] led3,
-  output [6:0] led4
+  output [6:0] led4,
+  output [6:0] led5,
+  output [6:0] led6,
 );
 reg [7:0] word_cnt;
 reg [9:0] buffer;
