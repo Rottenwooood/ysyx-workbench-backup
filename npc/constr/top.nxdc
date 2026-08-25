@@ -1,8 +1,5 @@
 top=top
-resetn SW1
-ps2_clk PS2_CLK
-ps2_data PS2_DAT
-
+reset SW0
 VGA_VSYNC VGA_VSYNC
 VGA_HSYNC VGA_HSYNC
 VGA_BLANK_N VGA_BLANK_N
