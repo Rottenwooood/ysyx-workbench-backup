@@ -24,6 +24,8 @@ MuxKeyWithDefault#(9, 4, 1) outMux(.out(out), .key(state_dout), .default_out(0),
   S8, 1'b1
 }));
 
+Reg #(4, S0) state_reg(.clk(clk), .rst(reset), .din(state_din), .dout(state_dout), .wen(state_wen));
+
 MuxKeyWithDefault#(9, 4, 4) stateMux(.out(state_din), .key(state_dout), .default_out(S0), .lut({
   S0, in ? S5 : S1,
   S1, in ? S5 : S2,
