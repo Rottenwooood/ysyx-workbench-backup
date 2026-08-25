@@ -4,6 +4,7 @@ module ps2_keyboard(clk,resetn,ps2_clk,ps2_data,word_cnt,buffer);
     output reg [9:0] buffer;        // ps2_data bits
     reg [3:0] count;  // count ps2_data bits
     reg [2:0] ps2_clk_sync;
+    reg [9:0] last_buffer;
     always @(posedge clk) begin
         ps2_clk_sync <=  {ps2_clk_sync[1:0],ps2_clk};
     end
@@ -22,9 +23,11 @@ module ps2_keyboard(clk,resetn,ps2_clk,ps2_data,word_cnt,buffer);
                     (ps2_data)       &&  // stop bit
                     (^buffer[9:1])) begin      // odd  parity
                     $display("receive %x", buffer[8:1]);
+                    if(last_buffer != buffer) word_cnt <= word_cnt + 1;
+                    last_buffer <= buffer;
                 end
                 count <= 0;     // for next
-                word_cnt <= word_cnt + 1;
+                
               end else begin
                 buffer[count] <= ps2_data;  // store ps2_data
                 count <= count + 3'b1;
