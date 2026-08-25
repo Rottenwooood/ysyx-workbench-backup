@@ -1,26 +1,46 @@
-module top(
-  input clk,
-  input reset,
-  output [14:0] led
+module top
+(
+  input   clk, in, reset,
+  output reg [6:0] led,
+  output out
 );
-  wire [2:0] mode;
-  reg [7:0] y;
-  MuxKeyWithDefault #(2, 1, 3) i0 (mode, reset, 3'b101, {
-    1'b0, 3'b101, //x,y[7:1]
-    1'b1, 3'b001  //reset
-  });
-  shift_reg #(8,1) sr(
-    .x (y[4]^y[3]^y[2]^y[0]),
-    .clk (clk),
-    .mode (mode),
-    .y (y)
-  );
-  hex7seg led1(
-    .b (y[7:4]),
-    .h (led[13:7])
-  );
-  hex7seg led2(
-    .b (y[3:0]),
-    .h (led[6:0])
+
+parameter[3:0] S0 = 0, S1 = 1, S2 = 2, S3 = 3,
+          S4 = 4, S5 = 5, S6 = 6, S7 = 7, S8 = 8;
+
+wire [3:0] state_din, state_dout;
+wire state_wen;
+
+assign state_wen = 1;
+
+MuxKeyWithDefault#(9, 4, 1) outMux(.out(out), .key(state_dout), .default_out(0), .lut({
+  S0, 1'b0,
+  S1, 1'b0,
+  S2, 1'b0,
+  S3, 1'b0,
+  S4, 1'b1,
+  S5, 1'b0,
+  S6, 1'b0,
+  S7, 1'b0,
+  S8, 1'b1
+}));
+
+Reg #(4, S0) state_reg(.clk(clk), .rst(reset), .din(state_din), .dout(state_dout), .wen(state_wen));
+
+MuxKeyWithDefault#(9, 4, 4) stateMux(.out(state_din), .key(state_dout), .default_out(S0), .lut({
+  S0, in ? S5 : S1,
+  S1, in ? S5 : S2,
+  S2, in ? S5 : S3,
+  S3, in ? S5 : S4,
+  S4, in ? S5 : S4,
+  S5, in ? S6 : S1,
+  S6, in ? S7 : S1,
+  S7, in ? S8 : S1,
+  S8, in ? S8 : S1
+}));
+
+hex7seg led1(
+    .b (state_dout[3:0]),
+    .h (led)
   );
 endmodule
