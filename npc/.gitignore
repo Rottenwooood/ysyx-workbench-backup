@@ -9,5 +9,6 @@
 !*.cpp
 !.gitignore
 !README.md
+!top.nxdc
 build/
 obj_dir/
