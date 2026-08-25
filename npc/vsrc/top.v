@@ -1,7 +1,8 @@
 module top
 (
   input   clk, in, reset,
-  output reg out
+  output reg [6:0] led,
+  output out
 );
 
 parameter[3:0] S0 = 0, S1 = 1, S2 = 2, S3 = 3,
@@ -38,4 +39,8 @@ MuxKeyWithDefault#(9, 4, 4) stateMux(.out(state_din), .key(state_dout), .default
   S8, in ? S8 : S1
 }));
 
+hex7seg led1(
+    .b (state_dout[3:0]),
+    .h (led)
+  );
 endmodule

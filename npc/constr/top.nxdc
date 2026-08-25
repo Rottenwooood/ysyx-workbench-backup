@@ -2,4 +2,4 @@ top=top
 clk (SW0)
 reset (SW1)
 in (SW2)
-out (LD0)
+led (SEG0A, SEG0B, SEG0C, SEG0D, SEG0E, SEG0F, SEG0G)
