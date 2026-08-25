@@ -5,7 +5,7 @@ module top(
   output [6:0] led3,
   output [6:0] led4,
   output [6:0] led5,
-  output [6:0] led6,
+  output [6:0] led6
 );
 reg [7:0] word_cnt;
 reg [9:0] buffer;
@@ -35,10 +35,10 @@ hex7seg my_led4(
   );
 hex7seg my_led5(
     .b (word_cnt[7:4]),
-    .h (led3)
+    .h (led5)
   );
 hex7seg my_led6(
     .b (word_cnt[3:0]),
-    .h (led4)
+    .h (led6)
   );
 endmodule
