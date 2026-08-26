@@ -1,4 +1,4 @@
-module top(
+module scpu(
     input clk,reset,
     output [6:0] reg0,
     output [6:0] reg1

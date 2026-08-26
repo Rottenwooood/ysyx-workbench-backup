@@ -1,8 +1,9 @@
 module hex7seg(
-  input  [3:0] b,
-  output [6:0] h
+  input [3:0] in,
+  input en,
+  output [6:0] out
 );
-  MuxKeyWithDefault #(16, 4, 7) i0 (h, b, 7'b1111111, {
+  MuxKeyWithDefault #(16, 4, 7) i0 (out, in, 7'b1111111, {
     4'b0000, 7'b0000001, 
     4'b0001, 7'b1001111, 
     4'b0010, 7'b0010010, 
