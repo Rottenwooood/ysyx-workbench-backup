@@ -3,7 +3,8 @@ module hex7seg(
   input en,
   output [6:0] out
 );
-  MuxKeyWithDefault #(16, 4, 7) i0 (out, in, 7'b1111111, {
+  wire [6:0] seg;
+  MuxKeyWithDefault #(16, 4, 7) i0 (seg, in, 7'b1111111, {
     4'b0000, 7'b0000001, 
     4'b0001, 7'b1001111, 
     4'b0010, 7'b0010010, 
@@ -21,4 +22,5 @@ module hex7seg(
     4'b1110, 7'b0110000,
     4'b1111, 7'b0111000
   });
+  assign out = en ? seg : 7'b1111111;
 endmodule
