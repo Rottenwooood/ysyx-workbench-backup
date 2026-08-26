@@ -88,12 +88,12 @@ hex7seg my_seg1(
 );
 hex7seg my_seg2(
     .in (pc_val[3:0]),
-    .en (reg_en),
+    .en (1'b1),
     .out (reg2)
 );
 hex7seg my_seg3(
     .in (pc_val[7:4]),
-    .en (reg_en),
+    .en (1'b1),
     .out (reg3)
 );
 endmodule
