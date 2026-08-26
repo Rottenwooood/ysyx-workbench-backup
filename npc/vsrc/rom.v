@@ -1,8 +1,7 @@
 module rom #(parameter WIDTH = 8,parameter DATA_WIDTH = 8)(
-  input clk,
   input [WIDTH-1:0] addr,
   input en,
-  output reg [DATA_WIDTH-1:0] data
+  output [DATA_WIDTH-1:0] data
 );
   reg [DATA_WIDTH-1:0] mem [0:(1<<WIDTH)-1];
   integer i;
@@ -18,9 +17,5 @@ module rom #(parameter WIDTH = 8,parameter DATA_WIDTH = 8)(
     mem[8'h06] = 8'hD2; // 1101 0010 bner0 r2 04
     mem[8'h07] = 8'h41; // 0100 0001 out r1
   end
-  always @(posedge clk) 
-    if(en)
-      data <= mem[addr];
-    else
-      data <= {DATA_WIDTH{1'b0}};
+  assign data = en ? mem[addr] : {DATA_WIDTH{1'b0}};
 endmodule
