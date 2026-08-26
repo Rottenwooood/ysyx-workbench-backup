@@ -1,7 +1,9 @@
 module top(
     input clk,reset,
     output [6:0] reg0,
-    output [6:0] reg1
+    output [6:0] reg1,
+    output [6:0] reg2,
+    output [6:0] reg3
 );
 reg [7:0] pc_val;
 reg [7:0] inst;
@@ -84,5 +86,14 @@ hex7seg my_seg1(
     .en (reg_en),
     .out (reg1)
 );
-
+hex7seg my_seg2(
+    .in (pc_val[3:0]),
+    .en (reg_en),
+    .out (reg2)
+);
+hex7seg my_seg3(
+    .in (pc_val[7:4]),
+    .en (reg_en),
+    .out (reg3)
+);
 endmodule
