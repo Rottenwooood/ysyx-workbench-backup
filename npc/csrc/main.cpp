@@ -11,7 +11,6 @@ int main() {
 
   while (1) {
     nvboard_update();
-    dut.clk = 0; dut.eval();
-    dut.clk = 1; dut.eval();
+    dut.eval();
   }
 }
