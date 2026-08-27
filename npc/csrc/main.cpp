@@ -69,7 +69,7 @@ int main() {
     for(int i = 0;i < 4;i++){
       printf("REG[%d]= %u", i, dut_regs[i]);
     }
-    printf("/n");
+    printf("\n");
   }
 
   dut.final();
