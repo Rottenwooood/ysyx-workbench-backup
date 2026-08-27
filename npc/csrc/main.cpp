@@ -65,9 +65,9 @@ int main() {
       printf("Simulation stop\n");
       break;
     }
-    printf("PC: %u",dut_pc);
+    printf("PC: %u ",dut_pc);
     for(int i = 0;i < 4;i++){
-      printf("REG[%d]= %u", i, dut_regs[i]);
+      printf("REG[%d]= %u ", i, dut_regs[i]);
     }
     printf("\n");
   }
