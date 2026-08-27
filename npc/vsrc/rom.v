@@ -14,7 +14,7 @@ module rom #(parameter WIDTH = 8,parameter DATA_WIDTH = 8)(
     mem[8'h03] = 8'hB1; // 1011 0001 li r3 1
     mem[8'h04] = 8'h2B; // 0010 1011 add r2 r2 r3
     mem[8'h05] = 8'h16; // 0001 0110 add r1 r1 r2
-    mem[8'h06] = 8'hD6; // 1101 0010 bner0 r2 04
+    mem[8'h06] = 8'hD2; // 1101 0010 bner0 r2 04
     mem[8'h07] = 8'h41; // 0100 0001 out r1
   end
   assign data = en ? mem[addr] : {DATA_WIDTH{1'b0}};
