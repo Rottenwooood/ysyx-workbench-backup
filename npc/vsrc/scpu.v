@@ -1,14 +1,16 @@
 module scpu(
     input clk,reset,
     output [6:0] reg0,
-    output [6:0] reg1
+    output [6:0] reg1,
+    output [6:0] reg2,
+    output [6:0] reg3
 );
 reg [7:0] pc_val;
-reg [7:0] inst;
+wire [7:0] inst;
 wire [1:0] r_addr0;
 wire [1:0] r_addr1;
-reg [7:0] r_data0;
-reg [7:0] r_data1;
+wire [7:0] r_data0;
+wire [7:0] r_data1;
 wire [7:0] w_data;
 wire [1:0] w_addr;
 wire [7:0] sum;
@@ -35,7 +37,6 @@ pc #(8) my_pc(
 );
 
 rom #(8,8) my_rom(
-    .clk (clk),
     .addr (pc_val),
     .en (1'b1),
     .data (inst)
@@ -84,5 +85,14 @@ hex7seg my_seg1(
     .en (reg_en),
     .out (reg1)
 );
-
+hex7seg my_seg2(
+    .in (pc_val[3:0]),
+    .en (1'b1),
+    .out (reg2)
+);
+hex7seg my_seg3(
+    .in (pc_val[7:4]),
+    .en (1'b1),
+    .out (reg3)
+);
 endmodule

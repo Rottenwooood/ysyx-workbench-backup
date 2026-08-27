@@ -18,9 +18,18 @@ INC_PATH ?=
 VERILATOR_CFLAGS += -MMD --build -cc \
 				-O3 --x-assign fast --x-initial fast --noassert --trace-fst
 
+# ---- 仿真模式选择: 默认 difftest, make BOARD=1 使用 NVBoard ----
+BOARD ?= 0
+ifeq ($(BOARD),1)
+  MAIN_SRC = nvboard_main.cpp
+  BIN = $(BUILD_DIR)/$(TOPNAME)-nvboard
+else
+  MAIN_SRC = main.cpp
+  BIN = $(BUILD_DIR)/$(TOPNAME)
+endif
+
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
-BIN = $(BUILD_DIR)/$(TOPNAME)
 
 $(shell mkdir -p $(BUILD_DIR))
 
@@ -34,6 +43,9 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 # project source
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+# 两个 main 不能同时编译, 只保留当前模式选中的那个
+CSRCS := $(filter-out %main.cpp, $(CSRCS))
+CSRCS += $(abspath ./csrc)/$(MAIN_SRC)
 CSRCS += $(SRC_AUTO_BIND)
 
 # rules for NVBoard
