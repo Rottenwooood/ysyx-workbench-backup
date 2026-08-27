@@ -15,7 +15,7 @@ wire [7:0] w_data;
 wire [1:0] w_addr;
 wire [7:0] sum;
 wire [7:0] equal;
-wire ben;
+wire ben,wen,ren;
 wire [7:0] b_addr;
 wire reg_en;
 
