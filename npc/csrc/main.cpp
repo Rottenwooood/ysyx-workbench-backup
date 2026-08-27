@@ -31,6 +31,15 @@ static int check_regs(const uint8_t *dut_regs, const uint8_t *ref_regs) {
   return is_diff;
 }
 
+static int check_pc(const uint8_t dut_pc, const uint8_t ref_pc) {
+  int is_diff = 0;
+  if (dut_pc != ref_pc) {
+    printf("pc: DUT=%u REF=%u\n", dut_pc, ref_pc);
+    is_diff = 1;
+  }
+  return is_diff;
+}
+
 int main() {
   reset(10);
 
@@ -41,10 +50,18 @@ int main() {
     // DUT GPR: top.gpr.mem, see generated Vtop___024root.h
     uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();
     uint8_t *ref_regs = ref_get_regs();
+    uint8_t dut_pc = dut.rootp->top__DOT__my_pc__DOT__out.data();
+    uint8_t ref_pc = ref_get_pc();
 
-    int is_diff = check_regs(dut_regs, ref_regs);
-    if (is_diff) {
+    int gpr_is_diff = check_regs(dut_regs, ref_regs);
+    if (gpr_is_diff) {
       printf("GPR different\n");
+      printf("Simulation stop\n");
+      break;
+    }
+    int pc_is_diff = check_pc(dut_pc, ref_pc);
+    if (pc_is_diff) {
+      printf("PC different\n");
       printf("Simulation stop\n");
       break;
     }
