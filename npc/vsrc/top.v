@@ -27,7 +27,8 @@ assign reg_en  = inst[7:6] == 2'b01;
 assign ben     = ~equal[0] && inst[7:6] == 2'b11;
 assign w_data  = inst[7] ? 8'(inst[3:0]) : sum;
 assign r_addr0 = (inst[7:6] == 2'b11) ? 2'b0 : inst[3:2];
-
+assign wen = ~inst[6];
+assign ren = inst[7:6] != 2'b10;
 pc #(8) my_pc(
     .clk (clk),
     .reset (reset),
@@ -68,8 +69,8 @@ ram #(2,8) gpr(
     .r_addr1 (r_addr1),
     .w_addr (w_addr),
     .w_data (w_data),
-    .wen (~inst[6]),
-    .ren (inst[7:6] != 2'b10),
+    .wen (wen),
+    .ren (ren),
     .reset (reset),
     .r_data0 (r_data0),
     .r_data1 (r_data1)
