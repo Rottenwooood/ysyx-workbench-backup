@@ -98,13 +98,13 @@ endmodule
 
 module IDU(
     input inst,
-    output [1:0] r_addr0;
-    output [1:0] r_addr1;
-    output [7:0] w_data;
-    output [1:0] w_addr;
-    output ben,wen,ren;
-    output [7:0] b_addr;
-    output reg_en;
+    output [1:0] r_addr0,
+    output [1:0] r_addr1,
+    output [7:0] w_data,
+    output [1:0] w_addr,
+    output ben,wen,ren,
+    output [7:0] b_addr,
+    output reg_en
 );
 
 assign r_addr0 = (inst[7:6] == 2'b11) ? 2'b0 : inst[3:2];
@@ -120,10 +120,10 @@ assign reg_en  = inst[7:6] == 2'b01;
 endmodule
 
 module EXU(
-    input [1:0] r_addr0;
-    input [1:0] r_addr1;
-    output [7:0] sum;
-    output [7:0] equal;
+    input [1:0] r_addr0,
+    input [1:0] r_addr1,
+    output [7:0] sum,
+    output [7:0] equal
 );
 
 alu #(8) adder(
