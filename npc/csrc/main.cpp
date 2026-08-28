@@ -76,10 +76,10 @@ int main() {
   while (ref_get_pc() != 8) {
     dut_single_cycle();
     ref_inst_cycle();
-    top->inst = pmem_read(top->pc_val);
+    dut.inst = pmem_read(dut.pc_val);
 
     // DUT GPR: top.gpr.mem, see generated Vtop___024root.h
-    uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();
+    // uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();
     uint8_t *ref_regs = ref_get_regs();
     uint8_t dut_pc = dut.rootp->top__DOT__pc_val;
     uint8_t ref_pc = ref_get_pc();
