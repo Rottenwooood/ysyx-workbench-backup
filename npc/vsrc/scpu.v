@@ -64,8 +64,8 @@ alu #(8) my_equal(
 
 ram #(2,8) gpr(
     .clk (clk),
-    .r_addr0 (r_addr0),
-    .r_addr1 (r_addr1),
+    .rs1 (r_addr0),
+    .rs2 (r_addr1),
     .w_addr (w_addr),
     .w_data (w_data),
     .wen (~inst[6]),

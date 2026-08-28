@@ -5,21 +5,24 @@ module top(
     output [6:0] reg2,
     output [6:0] reg3
 );
-reg [7:0] pc_val;
-wire [7:0] inst;
-wire [1:0] r_addr0;
-wire [1:0] r_addr1;
-wire [7:0] r_data0;
-wire [7:0] r_data1;
-wire [7:0] w_data;
-wire [1:0] w_addr;
+reg [31:0] pc_val;
+wire [31:0] inst;
+wire [4:0] rs1;
+wire [4:0] rs2;
+wire [31:0] r_data0;
+wire [31:0] r_data1;
+reg [31:0] w_data;
+wire [4:0] w_addr;
 wire ben,wen,ren;
-wire [7:0] b_addr;
+wire [31:0] b_addr;
 wire reg_en;
-wire [7:0] sum;
-wire [7:0] equal;
-
-
+wire [31:0] sum;
+wire [31:0] equal;
+wire [31:0] imm_i;
+wire [31:0] imm_s;
+wire [31:0] imm_u;
+wire [6:0] opcode;
+wire [2:0] func3;
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -41,15 +44,18 @@ hex7seg my_seg3(
     .out (reg3)
 );
 
-IFU my_ifu(
-    .pc_val (pc_val),
-    .inst (inst)
-);
-
 IDU my_idu(
     .inst (inst),
-    .r_addr0 (r_addr0),
-    .r_addr1 (r_addr1),
+    .sum (sum),
+    .equal (equal),
+    .imm_i (imm_i),
+    .imm_s (imm_s),
+    .imm_u (imm_u),
+    .pc_val (pc_val),
+    .opcode (opcode),
+    .func3 (func3),
+    .rs1 (rs1),
+    .rs2 (rs2),
     .w_data (w_data),
     .w_addr (w_addr),
     .ben (ben),
@@ -60,8 +66,11 @@ IDU my_idu(
 );
 
 EXU my_exu(
-    .r_addr0 (r_addr0),
-    .r_addr1 (r_addr1),
+    .r_data0 (r_data0),
+    .r_data1 (r_data1),
+    .imm_i (imm_i),
+    .imm_s (imm_s),
+    .opcode (opcode),
     .sum (sum),
     .equal (equal)
 );
@@ -73,8 +82,8 @@ LSU my_lsu(
     .ren (ren),
     .ben (ben),
     .b_addr (b_addr),
-    .r_addr0 (r_addr0),
-    .r_addr1 (r_addr1),
+    .rs1 (rs1),
+    .rs2 (rs2),
     .w_addr (w_addr),
     .w_data (w_data),
     .r_data0 (r_data0),
@@ -83,50 +92,64 @@ LSU my_lsu(
 );
 endmodule
 
-module IFU(
-    input pc_val,
-    output [7:0] inst
-);
-
-rom #(8,8) my_rom(
-    .addr (pc_val),
-    .en (1'b1),
-    .data (inst)
-);
-
-endmodule
-
 module IDU(
-    input inst,
-    output [1:0] r_addr0,
-    output [1:0] r_addr1,
-    output [7:0] w_data,
-    output [1:0] w_addr,
+    input [31:0] inst,sum,equal,pc_val,
+    output [31:0] imm_i,imm_s,imm_u,
+    output [6:0] opcode,
+    output [2:0] func3,
+    output [4:0] rs1,
+    output [4:0] rs2,
+    output [31:0] w_data,
+    output [4:0] w_addr,
     output ben,wen,ren,
-    output [7:0] b_addr,
+    output [31:0] b_addr,
     output reg_en
 );
 
-assign r_addr0 = (inst[7:6] == 2'b11) ? 2'b0 : inst[3:2];
-assign r_addr1 = inst[1:0];
-assign w_data  = inst[7] ? 8'(inst[3:0]) : sum;
-assign w_addr  = inst[5:4];
-assign ben     = ~equal[0] && inst[7:6] == 2'b11;
-assign wen = ~inst[6];
-assign ren = inst[7:6] != 2'b10;
-assign b_addr  = 8'(inst[5:2]);
-assign reg_en  = inst[7:6] == 2'b01;
+assign imm_i = inst[31] ? {20'hFFFFF,inst[31:20]} : {20'h00000,inst[31:20]}; 
+assign imm_s = inst[31] ? {20'hFFFFF,inst[31:25],inst[11:7]} : {20'h00000,inst[31:25],inst[11:7]}; 
+assign imm_u = {inst[31:12],12'b000};
+assign opcode = inst[6:0];
+assign func3 = inst[14:12];
+
+assign rs1 = inst[19:15];
+assign rs2 = inst[24:20];
+MuxKeyWithDefault #(5, 7, 32) i0 (w_data, opcode, sum, {
+    7'h13, sum,
+    7'h67, pc_val + 4,
+    7'h33, sum,
+    7'h37, imm_u,
+    7'h03, imm_s
+});
+
+assign w_addr  = inst[11:7];
+
+assign ben = opcode == 7'h67 && func3 == 3'b0;
+assign wen = opcode == 7'h13 && opcode == 7'h67 && opcode == 7'h33 && opcode == 7'h37 && opcode == 7'h03;
+assign ren = opcode == 7'h13 && opcode == 7'h67 && opcode == 7'h33 && opcode == 7'h03 && opcode == 7'h23;
+assign b_addr  = sum & ~1;
+assign reg_en  = 1'b1;
 
 endmodule
 
 module EXU(
-    input [1:0] r_addr0,
-    input [1:0] r_addr1,
-    output [7:0] sum,
-    output [7:0] equal
+    input [31:0] r_data0,
+    input [31:0] r_data1,
+    input [31:0] imm_i,
+    input [31:0] imm_s,
+    input [6:0] opcode,
+    output [31:0] sum,
+    output [31:0] equal
 );
-
-alu #(8) adder(
+wire [31:0] r_data1_;
+MuxKeyWithDefault #(5, 7, 32) i0 (r_data1_, opcode, 32'b0, {
+    7'h13, imm_i,
+    7'h67, imm_i,
+    7'h33, r_data1,
+    7'h03, imm_i,
+    7'h23, imm_s
+});
+alu #(32) adder(
     .A (r_data0),
     .B (r_data1),
     .flag (3'b000),
@@ -136,7 +159,7 @@ alu #(8) adder(
     .result (sum)
 );
 
-alu #(8) my_equal(
+alu #(32) my_equal(
     .A (r_data0),
     .B (r_data1),
     .flag (3'b111),
@@ -149,20 +172,21 @@ alu #(8) my_equal(
 endmodule
 
 module LSU(
-    input clk.wen,ren,ben,b_addr,reset
-    input [1:0] r_addr0,
-    input [1:0] r_addr1,
-    input [1:0] w_addr,
-    input [7:0] w_data,
-    output [7:0] r_data0,
-    output [7:0] r_data1,
-    output pc_val
+    input clk,wen,ren,ben,reset,
+    input [31:0] b_addr,
+    input [4:0] rs1,
+    input [4:0] rs2,
+    input [4:0] w_addr,
+    input [31:0] w_data,
+    output [31:0] r_data0,
+    output [31:0] r_data1,
+    output [31:0] pc_val
 );
 
-ram #(2,8) gpr(
+ram #(5,32) gpr(
     .clk (clk),
-    .r_addr0 (r_addr0),
-    .r_addr1 (r_addr1),
+    .rs1 (rs1),
+    .rs2 (rs2),
     .w_addr (w_addr),
     .w_data (w_data),
     .wen (wen),
@@ -172,7 +196,7 @@ ram #(2,8) gpr(
     .r_data1 (r_data1)
 );
 
-pc #(8) my_pc(
+pc #(32,4) my_pc(
     .clk (clk),
     .reset (reset),
     .ben (ben),

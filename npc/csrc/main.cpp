@@ -40,12 +40,43 @@ static int check_pc(const uint8_t dut_pc, const uint8_t ref_pc) {
   return is_diff;
 }
 
+uint8_t M[64];
+
+uint32_t pmem_read(uint32_t pc){
+  uint32_t inst = M[PC] | (M[PC+1] << 8) | (M[PC+2] << 16) | (M[PC+3] << 24);
+  return inst;
+}
+
 int main() {
   reset(10);
-
+  //	PC=0x00: lui  x1, 0x12345 -> x1=0x12345000
+	//	PC=0x04: addi x2, x1, 0x678 -> x2=0x12345678
+	//	PC=0x08: addi x3, x0, 0x30 -> x3=0x30
+	//	PC=0x0c: sw   x2, 0(x3)   -> M[0x30]=0x12345678
+	//	PC=0x10: lw   x4, 0(x3)   -> x4=0x12345678
+	//	PC=0x14: sb   x2, 4(x3)   -> M[0x34]=0x78
+	//	PC=0x18: lbu  x5, 4(x3)   -> x5=0x78
+	//	PC=0x1c: add  x6, x4, x2  -> x6=0x2468ACF0
+	//	PC=0x20: jalr x7, x3, -12 -> 跳到 0x24 的 ebreak
+	//	PC=0x24: ebreak
+	static const uint8_t prog[] = {
+		0xb7,0x50,0x34,0x12, 
+		0x13,0x81,0x80,0x67, 
+		0x93,0x01,0x00,0x03 //,
+		// 0x23,0xa0,0x21,0x00, 
+		// 0x03,0xa2,0x01,0x00, 
+		// 0x23,0x82,0x21,0x00,
+		// 0x83,0xc2,0x41,0x00, 
+		// 0x33,0x03,0x22,0x00, 
+		// 0xe7,0x83,0x41,0xff,
+		// 0x73,0x00,0x10,0x00
+	};
+	for(int i = 0;i < 40;i++) M[i] = prog[i];
+  
   while (ref_get_pc() != 8) {
     dut_single_cycle();
     ref_inst_cycle();
+    top->inst = pmem_read(top->pc_val);
 
     // DUT GPR: top.gpr.mem, see generated Vtop___024root.h
     uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();

@@ -1,6 +1,6 @@
-module pc #(parameter WIDTH = 8)(
+module pc #(parameter WIDTH = 8,parameter ADD = 1)(
     input clk,reset,ben,
-    input [7:0] b_addr,
+    input [WIDTH-1:0] b_addr,
     output reg [WIDTH-1:0] out
 );
     always@(posedge clk) begin
@@ -9,6 +9,6 @@ module pc #(parameter WIDTH = 8)(
         else if(ben)
             out <= b_addr;
         else
-            out <= out + 1'b1;
+            out <= out + ADD;
     end
 endmodule
