@@ -54,7 +54,7 @@ int main() {
   //	PC=0x00: lui  x1, 0x12345   -> x1=0x12345000       (lui)
 	//	PC=0x04: addi x2, x1, 0x678 -> x2=0x12345678       (addi)
 	//	PC=0x08: addi x3, x0, 0x30  -> x3=0x30             (addi)
-	//	PC=0x0c: add  x4, x1, x2    -> x4=0x2468ACF0       (add)
+	//	PC=0x0c: add  x4, x1, x2    -> x4=0x2468A678       (add)
 	//	PC=0x10: jalr x5, x3, -12   -> x5=0x14, 跳到 0x24  (jalr)
 	//	PC=0x14 ~ 0x20: 0 填充
 	//	PC=0x24: ebreak
