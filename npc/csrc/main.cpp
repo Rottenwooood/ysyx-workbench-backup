@@ -79,7 +79,7 @@ int main() {
 
   // 执行完 3 条指令后 ref_pc == 12, 循环退出
   while (ref_get_pc() != 12) {
-    dut.rootp->top__DOT__inst = pmem_read(dut.rootp->top__DOT__pc_val);
+    dut.inst = pmem_read(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
 
@@ -89,12 +89,6 @@ int main() {
     uint32_t dut_pc = dut.rootp->top__DOT__pc_val;
     uint32_t ref_pc = ref_get_pc();
 
-    printf("DBG inst=%08x pc=%u r_data0=%u r_data1=%u imm_i=%u sum=%u rdata1_=%u ren=%u\n",
-        dut.rootp->top__DOT__inst, dut_pc, dut.rootp->top__DOT__r_data0,
-        dut.rootp->top__DOT__r_data1, dut.rootp->top__DOT__imm_i,
-        dut.rootp->top__DOT__my_exu__DOT__adder__DOT__i0__DOT__i0__DOT__out,
-        dut.rootp->top__DOT__my_exu__DOT__i0__DOT__i0__DOT__out,
-        dut.rootp->top__DOT__ren);
     int gpr_is_diff = check_regs(dut_regs, ref_regs);
     int pc_is_diff = check_pc(dut_pc, ref_pc);
     if (gpr_is_diff || pc_is_diff) {

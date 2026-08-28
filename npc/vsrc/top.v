@@ -1,12 +1,12 @@
 module top(
     input clk,reset,
+    input [31:0] inst,
     output [6:0] reg0,
     output [6:0] reg1,
     output [6:0] reg2,
     output [6:0] reg3
 );
 reg [31:0] pc_val;
-wire [31:0] inst;
 wire [4:0] rs1;
 wire [4:0] rs2;
 wire [31:0] r_data0;
