@@ -7,7 +7,8 @@ module top(
     output [6:0] reg3
 );
 import "DPI-C" function void sim_finish();
-
+import "DPI-C" function int pmem_read(input int ram_raddr);
+import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
 reg [31:0] pc_val;
 wire [4:0] rs1;
 wire [4:0] rs2;
@@ -25,6 +26,25 @@ wire [31:0] imm_s;
 wire [31:0] imm_u;
 wire [6:0] opcode;
 wire [2:0] func3;
+reg ram_en;
+reg ram_wen;
+reg [31:0] ram_rdata;
+reg [31:0] ram_raddr;
+reg [31:0] ram_waddr;
+reg [31:0] ram_wdata;
+reg [7:0] ram_wmask;
+always @(*) begin
+  if (ram_en) begin // 有读写请求时
+    ram_rdata = pmem_read(ram_raddr);
+    if (ram_wen) begin // 有写请求时
+      pmem_write(ram_waddr, ram_wdata, ram_wmask);
+    end
+  end
+  else begin
+    ram_rdata = 0;
+  end
+end
+
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -61,6 +81,14 @@ IDU my_idu(
     .pc_val (pc_val),
     .opcode (opcode),
     .func3 (func3),
+    .ram_rdata (ram_rdata),
+    .r_data1 (r_data1),
+    .ram_raddr (ram_raddr),
+    .ram_waddr (ram_waddr),
+    .ram_wdata (ram_wdata),
+    .ram_wmask (ram_wmask),
+    .ram_en (ram_en),
+    .ram_wen (ram_wen),
     .rs1 (rs1),
     .rs2 (rs2),
     .w_data (w_data),
@@ -101,9 +129,17 @@ endmodule
 
 module IDU(
     input [31:0] inst,sum,equal,pc_val,
+    input [31:0] ram_rdata,
+    input [31:0] r_data1,
     output [31:0] imm_i,imm_s,imm_u,
     output [6:0] opcode,
     output [2:0] func3,
+    output [31:0] ram_raddr,
+    output [31:0] ram_waddr,
+    output [31:0] ram_wdata,
+    output [7:0] ram_wmask,
+    output ram_en,
+    output ram_wen,
     output [4:0] rs1,
     output [4:0] rs2,
     output [31:0] w_data,
@@ -118,19 +154,27 @@ assign imm_s = inst[31] ? {20'hFFFFF,inst[31:25],inst[11:7]} : {20'h00000,inst[3
 assign imm_u = {inst[31:12],12'b000};
 assign opcode = inst[6:0];
 assign func3 = inst[14:12];
+assign ram_raddr = sum;
+assign ram_waddr = sum;
+assign ram_wdata = r_data1;
 
+MuxKeyWithDefault #(3, 3, 8) i0 (ram_wmask, func3, 8'hF, {
+    3'h0, 8'h1,
+    3'h2, 8'hF,
+    3'h4, 8'h1
+});
 assign rs1 = inst[19:15];
 assign rs2 = inst[24:20];
-MuxKeyWithDefault #(5, 7, 32) i0 (w_data, opcode, sum, {
+MuxKeyWithDefault #(5, 7, 32) i1 (w_data, opcode, sum, {
     7'h13, sum,
     7'h67, pc_val + 4,
     7'h33, sum,
     7'h37, imm_u,
-    7'h03, imm_s
+    7'h03, ram_rdata
 });
-
 assign w_addr  = inst[11:7];
-
+assign ram_en = opcode == 7'h23 || opcode == 7'h03;
+assign ram_wen = opcode == 7'h23;
 assign ben = opcode == 7'h67 && func3 == 3'b0;
 assign wen = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h37 || opcode == 7'h03;
 assign ren = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h03 || opcode == 7'h23;
