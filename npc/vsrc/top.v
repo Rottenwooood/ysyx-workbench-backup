@@ -125,8 +125,8 @@ MuxKeyWithDefault #(5, 7, 32) i0 (w_data, opcode, sum, {
 assign w_addr  = inst[11:7];
 
 assign ben = opcode == 7'h67 && func3 == 3'b0;
-assign wen = opcode == 7'h13 && opcode == 7'h67 && opcode == 7'h33 && opcode == 7'h37 && opcode == 7'h03;
-assign ren = opcode == 7'h13 && opcode == 7'h67 && opcode == 7'h33 && opcode == 7'h03 && opcode == 7'h23;
+assign wen = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h37 || opcode == 7'h03;
+assign ren = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h03 || opcode == 7'h23;
 assign b_addr  = sum & ~1;
 assign reg_en  = 1'b1;
 
@@ -151,7 +151,7 @@ MuxKeyWithDefault #(5, 7, 32) i0 (r_data1_, opcode, 32'b0, {
 });
 alu #(32) adder(
     .A (r_data0),
-    .B (r_data1),
+    .B (r_data1_),
     .flag (3'b000),
     .carry (),
     .zero (),
