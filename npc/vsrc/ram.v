@@ -18,6 +18,6 @@ module ram #(parameter WIDTH = 8,parameter DATA_WIDTH = 8)(
     else if(wen)
       mem[w_addr] <= w_data;
   end
-  assign r_data0 = ren ? mem[rs1] : {DATA_WIDTH{1'b0}};
-  assign r_data1 = ren ? mem[rs2] : {DATA_WIDTH{1'b0}};
+  assign r_data0 = ren && rs1 ? mem[rs1] : {DATA_WIDTH{1'b0}};
+  assign r_data1 = ren && rs2 ? mem[rs2] : {DATA_WIDTH{1'b0}};
 endmodule
