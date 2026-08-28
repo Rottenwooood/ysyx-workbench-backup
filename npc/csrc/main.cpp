@@ -6,6 +6,12 @@
 
 static TOP_NAME dut;
 
+static volatile bool sim_finish_flag = false;
+
+extern "C" void sim_finish() {
+  sim_finish_flag = true;
+}
+
 void ref_inst_cycle();
 void ref_load_mem(const uint8_t *img, int size);
 uint32_t *ref_get_regs();
@@ -74,8 +80,8 @@ int main() {
 	memcpy(M, prog, sizeof(prog));
 	ref_load_mem(M, sizeof(M));
 
-  // 执行到 jalr 跳转后 ref_pc == 0x24, 循环退出
-  while (ref_get_pc() != 0x24) {
+  // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真
+  while (!sim_finish_flag) {
     dut.inst = pmem_read(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();

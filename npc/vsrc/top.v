@@ -6,6 +6,8 @@ module top(
     output [6:0] reg2,
     output [6:0] reg3
 );
+import "DPI-C" function void sim_finish();
+
 reg [31:0] pc_val;
 wire [4:0] rs1;
 wire [4:0] rs2;
@@ -43,6 +45,11 @@ hex7seg my_seg3(
     .en (1'b1),
     .out (reg3)
 );
+
+always @(posedge clk) begin
+  if (!reset && inst == 32'h00100073)
+    sim_finish();
+end
 
 IDU my_idu(
     .inst (inst),

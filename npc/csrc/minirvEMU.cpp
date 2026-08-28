@@ -75,7 +75,8 @@ void ref_inst_cycle(){
 		case 0x73:								//SYSTEM
 			if(inst == 0x00100073){				//ebreak
 				printf("EBREAK: program terminates correctly\n");
-				exit(0);
+				// 结束仿真由 RTL 通过 DPI-C 的 sim_finish() 通知,
+				// 这里不再 exit()
 			}
 			break;
 	}
