@@ -156,7 +156,8 @@ assign opcode = inst[6:0];
 assign func3 = inst[14:12];
 assign ram_raddr = sum;
 assign ram_waddr = sum;
-assign ram_wdata = r_data1;
+// sw (func3=2): 整字; sb (func3=0): 存 rs2 最低字节, 但要挪到地址对应的字节位
+assign ram_wdata = (func3 == 3'b000) ? ((r_data1 & 32'hFF) << (8 * sum[1:0])) : r_data1;
 
 wire [7:0] ram_wmask_raw;
 MuxKeyWithDefault #(3, 3, 8) i0 (ram_wmask_raw, func3, 8'h0, {
