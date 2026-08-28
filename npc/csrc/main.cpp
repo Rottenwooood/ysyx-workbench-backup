@@ -79,7 +79,7 @@ int main() {
     dut.inst = pmem_read(dut.pc_val);
 
     // DUT GPR: top.gpr.mem, see generated Vtop___024root.h
-    // uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();
+    uint8_t *dut_regs = dut.rootp->top__DOT__gpr__DOT__mem.data();
     uint8_t *ref_regs = ref_get_regs();
     uint8_t dut_pc = dut.rootp->top__DOT__pc_val;
     uint8_t ref_pc = ref_get_pc();
