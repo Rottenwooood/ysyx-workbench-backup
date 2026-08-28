@@ -15,9 +15,9 @@ module ram #(parameter WIDTH = 8,parameter DATA_WIDTH = 8)(
   always @(posedge clk) begin
     if(reset)
       for (i = 0; i < (1<<WIDTH); i = i + 1) mem[i] <= {DATA_WIDTH{1'b0}};
-    else if(wen)
+    else if(wen && w_addr != 0)
       mem[w_addr] <= w_data;
   end
-  assign r_data0 = ren ? mem[rs1] : {DATA_WIDTH{1'b0}};
-  assign r_data1 = ren ? mem[rs2] : {DATA_WIDTH{1'b0}};
+  assign r_data0 = (ren && rs1 != 0) ? mem[rs1] : {DATA_WIDTH{1'b0}};
+  assign r_data1 = (ren && rs2 != 0) ? mem[rs2] : {DATA_WIDTH{1'b0}};
 endmodule
