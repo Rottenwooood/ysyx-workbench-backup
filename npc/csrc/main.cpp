@@ -5,6 +5,7 @@
 #include <Vtop___024root.h>
 
 static TOP_NAME dut;
+uint8_t M[64];
 
 static volatile bool sim_finish_flag = false;
 
@@ -12,15 +13,20 @@ extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
 extern "C" int pmem_read(int ram_raddr) {
-  uint32_t a = ram_raddr & ~0x3u;
+  uint32_t a = (uint32_t)ram_raddr & ~0x3u;
+  if (a + 4 > sizeof(M)) return 0;
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
-  uint32_t a = ram_waddr & ~0x3u;
+  uint32_t a = (uint32_t)ram_waddr & ~0x3u;
   for(int i = 0;i < 4;i++){
-    if((1 << i) & ram_wmask)
+    if(a + i < sizeof(M) && ((1 << i) & (unsigned char)ram_wmask))
       M[a+i] = (ram_wdata >> (8*i)) & 0xFF; 
   }
+}
+
+static uint32_t inst_fetch(uint32_t pc) {
+  return M[pc] | (M[pc+1]<<8) | (M[pc+2]<<16) | (M[pc+3]<<24);
 }
 
 void ref_inst_cycle();
@@ -59,32 +65,28 @@ static int check_pc(const uint32_t dut_pc, const uint32_t ref_pc) {
   return is_diff;
 }
 
-uint8_t M[64];
-
-uint32_t pmem_read(uint32_t PC){
-  uint32_t inst = M[PC] | (M[PC+1] << 8) | (M[PC+2] << 16) | (M[PC+3] << 24);
-  return inst;
-}
-
 int main() {
   reset(10);
   //	PC=0x00: lui  x1, 0x12345   -> x1=0x12345000       (lui)
 	//	PC=0x04: addi x2, x1, 0x678 -> x2=0x12345678       (addi)
 	//	PC=0x08: addi x3, x0, 0x30  -> x3=0x30             (addi)
-	//	PC=0x0c: add  x4, x1, x2    -> x4=0x2468A678       (add)
-	//	PC=0x10: jalr x5, x3, -12   -> x5=0x14, 跳到 0x24  (jalr)
-	//	PC=0x14 ~ 0x20: 0 填充
+	//	PC=0x0c: sw   x2, 0(x3)     -> M[0x30]=0x12345678  (sw)
+	//	PC=0x10: lw   x4, 0(x3)     -> x4=0x12345678       (lw)
+	//	PC=0x14: sb   x2, 4(x3)     -> M[0x34]=0x78        (sb)
+	//	PC=0x18: lbu  x5, 4(x3)     -> x5=0x78             (lbu)
+	//	PC=0x1c: add  x6, x4, x2    -> x6=0x2468ACF0       (add)
+	//	PC=0x20: jalr x7, x3, -12   -> x7=0x24, 跳到 0x24  (jalr)
 	//	PC=0x24: ebreak
 	static const uint8_t prog[] = {
 		0xb7,0x50,0x34,0x12, // lui  x1, 0x12345
 		0x13,0x81,0x80,0x67, // addi x2, x1, 0x678
 		0x93,0x01,0x00,0x03, // addi x3, x0, 0x30
-		0x33,0x82,0x20,0x00, // add  x4, x1, x2
-		0xe7,0x82,0x41,0xff, // jalr x5, x3, -12
-		0x00,0x00,0x00,0x00, // 0x14
-		0x00,0x00,0x00,0x00, // 0x18
-		0x00,0x00,0x00,0x00, // 0x1c
-		0x00,0x00,0x00,0x00, // 0x20
+		0x23,0xa0,0x21,0x00, // sw   x2, 0(x3)
+		0x03,0xa2,0x01,0x00, // lw   x4, 0(x3)
+		0x23,0x82,0x21,0x00, // sb   x2, 4(x3)
+		0x83,0xc2,0x41,0x00, // lbu  x5, 4(x3)
+		0x33,0x03,0x22,0x00, // add  x6, x4, x2
+		0xe7,0x83,0x41,0xff, // jalr x7, x3, -12
 		0x73,0x00,0x10,0x00  // 0x24 ebreak
 	};
 	memset(M, 0, sizeof(M));
@@ -93,7 +95,7 @@ int main() {
 
   // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真
   while (!sim_finish_flag) {
-    dut.inst = pmem_read(dut.rootp->top__DOT__pc_val);
+    dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
 

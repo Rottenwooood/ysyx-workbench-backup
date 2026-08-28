@@ -158,11 +158,18 @@ assign ram_raddr = sum;
 assign ram_waddr = sum;
 assign ram_wdata = r_data1;
 
-MuxKeyWithDefault #(3, 3, 8) i0 (ram_wmask, func3, 8'hF, {
-    3'h0, 8'h1,
-    3'h2, 8'hF,
-    3'h4, 8'h1
+wire [7:0] ram_wmask_raw;
+MuxKeyWithDefault #(3, 3, 8) i0 (ram_wmask_raw, func3, 8'h0, {
+    3'h0, 8'h01,
+    3'h2, 8'h0F,
+    3'h4, 8'h01
 });
+// sb (func3=0): 写掩码按地址低 2 位偏移, 写到正确的字节
+assign ram_wmask = (func3 == 3'b000) ? (ram_wmask_raw << sum[1:0]) : ram_wmask_raw;
+wire [31:0] load_data;
+assign load_data = (func3 == 3'b010) ? ram_rdata :                              // lw: 整字
+                   (func3 == 3'b100) ? {24'b0, ram_rdata[sum[1:0]*8 +: 8]} :    // lbu: 取对应字节并零扩展
+                   32'b0;
 assign rs1 = inst[19:15];
 assign rs2 = inst[24:20];
 MuxKeyWithDefault #(5, 7, 32) i1 (w_data, opcode, sum, {
@@ -170,7 +177,7 @@ MuxKeyWithDefault #(5, 7, 32) i1 (w_data, opcode, sum, {
     7'h67, pc_val + 4,
     7'h33, sum,
     7'h37, imm_u,
-    7'h03, ram_rdata
+    7'h03, load_data
 });
 assign w_addr  = inst[11:7];
 assign ram_en = opcode == 7'h23 || opcode == 7'h03;
