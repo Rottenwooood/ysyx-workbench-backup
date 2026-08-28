@@ -11,6 +11,17 @@ static volatile bool sim_finish_flag = false;
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
+extern "C" int pmem_read(int ram_raddr) {
+  uint32_t a = ram_raddr & ~0x3u;
+  return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
+}
+extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
+  uint32_t a = ram_waddr & ~0x3u;
+  for(int i = 0;i < 4;i++){
+    if((1 << i) & ram_wmask)
+      M[a+i] = (ram_wdata >> (8*i)) & 0xFF; 
+  }
+}
 
 void ref_inst_cycle();
 void ref_load_mem(const uint8_t *img, int size);

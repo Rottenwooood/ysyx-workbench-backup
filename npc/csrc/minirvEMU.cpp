@@ -54,7 +54,7 @@ void ref_inst_cycle(){
 			if(func3 == 0) R[rd] = R[rs1] + R[rs2];        //add
 			break;
 		case 0x37:								//lui
-			R[rd] = (inst & 0xFFFFF000);
+			R[rd] = imm_u(inst);
 			break;
 		case 0x03:								//load
 			if(func3 == 2){						//lw
