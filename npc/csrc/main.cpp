@@ -42,7 +42,7 @@ static int check_pc(const uint8_t dut_pc, const uint8_t ref_pc) {
 
 uint8_t M[64];
 
-uint32_t pmem_read(uint32_t pc){
+uint32_t pmem_read(uint32_t PC){
   uint32_t inst = M[PC] | (M[PC+1] << 8) | (M[PC+2] << 16) | (M[PC+3] << 24);
   return inst;
 }
