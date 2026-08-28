@@ -7,6 +7,7 @@
 static TOP_NAME dut;
 
 void ref_inst_cycle();
+void ref_load_mem(const uint8_t *img, int size);
 uint32_t *ref_get_regs();
 uint32_t ref_get_pc();
 
@@ -74,6 +75,7 @@ int main() {
 	};
 	memset(M, 0, sizeof(M));
 	memcpy(M, prog, sizeof(prog));
+	ref_load_mem(M, sizeof(M));
 
   // 执行完 3 条指令后 ref_pc == 12, 循环退出
   while (ref_get_pc() != 12) {

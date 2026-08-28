@@ -6,6 +6,10 @@ static uint32_t PC = 0;
 static uint32_t R[32];
 static uint8_t M[64];
 
+void ref_load_mem(const uint8_t *img, int size){
+	for(int i = 0;i < size && i < 64;i++) M[i] = img[i];
+}
+
 // I型：bits[31:20]）
 static int32_t imm_i(uint32_t inst){
 	uint32_t imm = inst >> 20;
