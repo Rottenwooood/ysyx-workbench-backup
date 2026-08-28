@@ -79,7 +79,7 @@ void ref_inst_cycle(){
 			}
 			break;
 	}
-	printf("PC = %03u inst = %08x R1=%03x R2=%03x R3=%03x R4=%03x R5=%03x R6=%03x R7=%03x  M30=%03x M34=%02x%02x%02x%02x\n",
+	printf("PC = %03u inst = %08x R1=%08x R2=%08x R3=%08x R4=%08x R5=%08x R6=%08x R7=%08x  M30=%08x M34=%02x%02x%02x%02x\n",
 			PC, inst, R[1], R[2], R[3], R[4], R[5], R[6], R[7],
 			M[0x30], M[0x34], M[0x35], M[0x36], M[0x37]);
 	//PC+4
