@@ -7,7 +7,7 @@
 
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
-#define NPC_TRACE
+
 static TOP_NAME dut;
 static uint8_t M[PMEM_SIZE];
 static size_t img_size = 0;
