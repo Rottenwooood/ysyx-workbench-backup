@@ -2,12 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static uint32_t PC = 0;
+#define PMEM_BASE  0x80000000u
+#define PMEM_SIZE  (128u * 1024u * 1024u)
+#define REF_M(addr) M[(addr) - PMEM_BASE]
+
+static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
-static uint8_t M[64];
+static uint8_t M[PMEM_SIZE];
 
 void ref_load_mem(const uint8_t *img, int size){
-	for(int i = 0;i < size && i < 64;i++) M[i] = img[i];
+	for(int i = 0;i < size && i < PMEM_SIZE;i++) M[i] = img[i];
 }
 
 // I型：bits[31:20]）
@@ -29,7 +33,7 @@ static int32_t imm_u(uint32_t inst){
 
 void ref_inst_cycle(){
 	//取指
-	uint32_t inst = M[PC] | (M[PC+1] << 8) | (M[PC+2] << 16) | (M[PC+3] << 24);
+	uint32_t inst = REF_M(PC) | (REF_M(PC+1) << 8) | (REF_M(PC+2) << 16) | (REF_M(PC+3) << 24);
 	//译码
 	uint8_t opcode = inst & 0x7F;
 	uint8_t func3 = (inst >> 12) & 0x07;
@@ -59,17 +63,17 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				R[rd] = M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
+				R[rd] = REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24;
 			}else if(func3 == 4){				//lbu
-				R[rd] = M[R[rs1] + imm_i(inst)];
+				R[rd] = REF_M(R[rs1] + imm_i(inst));
 			}
 			break;
 		case 0x23:								//store
 			if(func3 == 2){						//sw
 				uint32_t a = R[rs1] + imm_s(inst);
-				for(int i = 0;i < 4;i++) M[a + i] = (R[rs2] >> (i*8)) & 0xFF;
+				for(int i = 0;i < 4;i++) REF_M(a + i) = (R[rs2] >> (i*8)) & 0xFF;
 			}else if(func3 == 0){				//sb
-				M[R[rs1] + imm_s(inst)] = R[rs2] & 0xFF;
+				REF_M(R[rs1] + imm_s(inst)) = R[rs2] & 0xFF;
 			}
 			break;
 		case 0x73:								//SYSTEM
@@ -80,9 +84,10 @@ void ref_inst_cycle(){
 			}
 			break;
 	}
-	printf("PC = %03u inst = %08x R1=%08x R2=%08x R3=%08x R4=%08x R5=%08x R6=%08x R7=%08x  M30=%08x M34=%02x%02x%02x%02x\n",
-			PC, inst, R[1], R[2], R[3], R[4], R[5], R[6], R[7],
-			M[0x30], M[0x34], M[0x35], M[0x36], M[0x37]);
+#ifdef NPC_TRACE
+	printf("PC = %08x inst = %08x R1=%08x R2=%08x R3=%08x R4=%08x R5=%08x R6=%08x R7=%08x\n",
+			PC, inst, R[1], R[2], R[3], R[4], R[5], R[6], R[7]);
+#endif
 	//PC+4
 	if(!jumped) PC = PC + 4;
 }

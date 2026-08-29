@@ -1,11 +1,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <Vtop.h>
 #include <Vtop___024root.h>
 
+#define PMEM_BASE  0x80000000u
+#define PMEM_SIZE  (128u * 1024u * 1024u)
+
 static TOP_NAME dut;
-uint8_t M[64];
+static uint8_t M[PMEM_SIZE];
+static size_t img_size = 0;
 
 static volatile bool sim_finish_flag = false;
 
@@ -13,20 +18,32 @@ extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
 extern "C" int pmem_read(int ram_raddr) {
-  uint32_t a = (uint32_t)ram_raddr & ~0x3u;
-  if (a + 4 > sizeof(M)) return 0;
+  uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
+  if (a + 4 > PMEM_SIZE) return 0;
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
-  uint32_t a = (uint32_t)ram_waddr & ~0x3u;
+  uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;
   for(int i = 0;i < 4;i++){
-    if(a + i < sizeof(M) && ((1 << i) & (unsigned char)ram_wmask))
-      M[a+i] = (ram_wdata >> (8*i)) & 0xFF; 
+    if(a + i < PMEM_SIZE && ((1 << i) & (unsigned char)ram_wmask))
+      M[a+i] = (ram_wdata >> (8*i)) & 0xFF;
   }
 }
 
 static uint32_t inst_fetch(uint32_t pc) {
-  return M[pc] | (M[pc+1]<<8) | (M[pc+2]<<16) | (M[pc+3]<<24);
+  uint32_t off = pc - PMEM_BASE;
+  return M[off] | (M[off+1]<<8) | (M[off+2]<<16) | (M[off+3]<<24);
+}
+
+static void load_img(const char *path) {
+  FILE *fp = fopen(path, "rb");
+  if (fp == NULL) {
+    printf("Can not open '%s'\n", path);
+    exit(1);
+  }
+  img_size = fread(M, 1, PMEM_SIZE, fp);
+  fclose(fp);
+  printf("image: %s (%zu bytes)\n", path, img_size);
 }
 
 void ref_inst_cycle();
@@ -65,35 +82,20 @@ static int check_pc(const uint32_t dut_pc, const uint32_t ref_pc) {
   return is_diff;
 }
 
-int main() {
-  reset(10);
-  //	PC=0x00: lui  x1, 0x12345   -> x1=0x12345000       (lui)
-	//	PC=0x04: addi x2, x1, 0x678 -> x2=0x12345678       (addi)
-	//	PC=0x08: addi x3, x0, 0x30  -> x3=0x30             (addi)
-	//	PC=0x0c: sw   x2, 0(x3)     -> M[0x30]=0x12345678  (sw)
-	//	PC=0x10: lw   x4, 0(x3)     -> x4=0x12345678       (lw)
-	//	PC=0x14: sb   x2, 5(x3)     -> M[0x35]=0x78 (非对齐, 验证字节位置)  (sb)
-	//	PC=0x18: lbu  x5, 5(x3)     -> x5=0x78                             (lbu)
-	//	PC=0x1c: add  x6, x4, x2    -> x6=0x2468ACF0       (add)
-	//	PC=0x20: jalr x7, x3, -12   -> x7=0x24, 跳到 0x24  (jalr)
-	//	PC=0x24: ebreak
-	static const uint8_t prog[] = {
-		0xb7,0x50,0x34,0x12, // lui  x1, 0x12345
-		0x13,0x81,0x80,0x67, // addi x2, x1, 0x678
-		0x93,0x01,0x00,0x03, // addi x3, x0, 0x30
-		0x23,0xa0,0x21,0x00, // sw   x2, 0(x3)
-		0x03,0xa2,0x01,0x00, // lw   x4, 0(x3)
-		0xa3,0x82,0x21,0x00, // sb   x2, 5(x3)   -> M[0x35]=0x78
-		0x83,0xc2,0x51,0x00, // lbu  x5, 5(x3)   -> x5=0x78
-		0x33,0x03,0x22,0x00, // add  x6, x4, x2
-		0xe7,0x83,0x41,0xff, // jalr x7, x3, -12
-		0x73,0x00,0x10,0x00  // 0x24 ebreak
-	};
-	memset(M, 0, sizeof(M));
-	memcpy(M, prog, sizeof(prog));
-	ref_load_mem(M, sizeof(M));
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    printf("Usage: %s <image.bin>\n", argv[0]);
+    return 1;
+  }
+  load_img(argv[1]);
 
-  // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真
+  reset(10);
+  ref_load_mem(M, img_size);
+
+  const long CYCLE_LIMIT = 1000000;
+  long cycle = 0;
+  // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真;
+  // 程序 halt() 为无限循环时由 cycle 上限兜底
   while (!sim_finish_flag) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
@@ -111,11 +113,10 @@ int main() {
       printf("Simulation stop\n");
       break;
     }
-    // printf("PC: %u ", dut_pc);
-    // for(int i = 0;i < 4;i++){
-    //   printf("REG[%d]= %u ", i, dut_regs[i]);
-    // }
-    // printf("\n");
+    if (++cycle > CYCLE_LIMIT) {
+      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
+      break;
+    }
   }
 
   dut.final();
