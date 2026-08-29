@@ -1,3 +1,4 @@
+#define NPC_TRACE 1
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
