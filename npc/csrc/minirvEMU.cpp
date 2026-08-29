@@ -1,4 +1,3 @@
-#define NPC_TRACE 1
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,8 +49,9 @@ void ref_inst_cycle(){
 			break;
 		case 0x67:								//jalr
 			if(func3 == 0){
+				uint32_t target = (R[rs1] + imm_i(inst)) & ~1;  // 先算目标(用旧 rs1), 避免 rd==rs1 时被覆盖
 				R[rd] = PC + 4;
-				PC = (R[rs1] + imm_i(inst)) & ~1;
+				PC = target;
 				jumped = 1;
 			}
 			break;
