@@ -1,4 +1,3 @@
-#define NPC_TRACE 1
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +31,11 @@ static int32_t imm_u(uint32_t inst){
 	return (int32_t)(inst & 0xFFFFF000);
 }
 
+// x0 恒为 0, 写 x0 要忽略 (与 RTL 的 ram.v 一致)
+static void set_reg(int rd, uint32_t val){
+	if(rd != 0) R[rd] = val;
+}
+
 void ref_inst_cycle(){
 	//取指
 	uint32_t inst = REF_M(PC) | (REF_M(PC+1) << 8) | (REF_M(PC+2) << 16) | (REF_M(PC+3) << 24);
@@ -46,28 +50,28 @@ void ref_inst_cycle(){
 
 	switch(opcode){
 		case 0x13:								//op-imm
-			if(func3 == 0) R[rd] = R[rs1] + imm_i(inst);   //addi
+			if(func3 == 0) set_reg(rd, R[rs1] + imm_i(inst));   //addi
 			break;
 		case 0x67:								//jalr
 			if(func3 == 0){
 				uint32_t target = (R[rs1] + imm_i(inst)) & ~1;  // 先算目标(用旧 rs1), 避免 rd==rs1 时被覆盖
-				R[rd] = PC + 4;
+				set_reg(rd, PC + 4);
 				PC = target;
 				jumped = 1;
 			}
 			break;
 		case 0x33:								//op
-			if(func3 == 0) R[rd] = R[rs1] + R[rs2];        //add
+			if(func3 == 0) set_reg(rd, R[rs1] + R[rs2]);        //add
 			break;
 		case 0x37:								//lui
-			R[rd] = imm_u(inst);
+			set_reg(rd, imm_u(inst));
 			break;
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				R[rd] = REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24;
+				set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
 			}else if(func3 == 4){				//lbu
-				R[rd] = REF_M(R[rs1] + imm_i(inst));
+				set_reg(rd, REF_M(R[rs1] + imm_i(inst)));
 			}
 			break;
 		case 0x23:								//store

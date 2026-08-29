@@ -109,9 +109,6 @@ int main(int argc, char *argv[]) {
 
     int gpr_is_diff = check_regs(dut_regs, ref_regs);
     int pc_is_diff = check_pc(dut_pc, ref_pc);
-    printf("cycle=%ld DUT_PC=%08x REF_PC=%08x R0=%08x/%08x R1=%08x/%08x R2=%08x/%08x R3=%08x/%08x\n",
-      cycle, dut_pc, ref_pc, dut_regs[0], ref_regs[0], dut_regs[1], ref_regs[1],
-      dut_regs[2], ref_regs[2], dut_regs[3], ref_regs[3]);
     if (gpr_is_diff || pc_is_diff) {
       printf("Simulation stop\n");
       break;
