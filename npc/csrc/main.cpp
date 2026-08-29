@@ -112,12 +112,17 @@ int main(int argc, char *argv[]) {
     if (gpr_is_diff || pc_is_diff) {
       printf("Simulation stop\n");
       break;
-      // }
+    }
     if (++cycle > CYCLE_LIMIT) {
       printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
       break;
-      // }
+    }
+    // printf("PC: %u ", dut_pc);
+    // for(int i = 0;i < 4;i++){
+    //   printf("REG[%d]= %u ", i, dut_regs[i]);
     // }
+    // printf("\n");
+  }
 
   dut.final();
   return 0;
