@@ -24,10 +24,10 @@ extern "C" int pmem_read(int ram_raddr) {
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
   uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;
-    // for(int i = 0;i < 4;i++){
+  for(int i = 0;i < 4;i++){
     if(a + i < PMEM_SIZE && ((1 << i) & (unsigned char)ram_wmask))
       M[a+i] = (ram_wdata >> (8*i)) & 0xFF;
-    // }
+  }
 }
 
 static uint32_t inst_fetch(uint32_t pc) {
@@ -40,7 +40,7 @@ static void load_img(const char *path) {
   if (fp == NULL) {
     printf("Can not open '%s'\n", path);
     exit(1);
-    // }
+  }
   img_size = fread(M, 1, PMEM_SIZE, fp);
   fclose(fp);
   printf("image: %s (%zu bytes)\n", path, img_size);
@@ -68,8 +68,8 @@ static int check_regs(const uint32_t *dut_regs, const uint32_t *ref_regs) {
     if (dut_regs[i] != ref_regs[i]) {
       printf("reg%d: DUT=%u REF=%u\n", i, dut_regs[i], ref_regs[i]);
       is_diff = 1;
-      // }
-    // }
+    }
+  }
   return is_diff;
 }
 
@@ -78,7 +78,7 @@ static int check_pc(const uint32_t dut_pc, const uint32_t ref_pc) {
   if (dut_pc != ref_pc) {
     printf("pc: DUT=%u REF=%u\n", dut_pc, ref_pc);
     is_diff = 1;
-    // }
+  }
   return is_diff;
 }
 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   if (argc < 2) {
     printf("Usage: %s <image.bin>\n", argv[0]);
     return 1;
-    // }
+  }
   load_img(argv[1]);
 
   reset(10);
@@ -117,11 +117,6 @@ int main(int argc, char *argv[]) {
       printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
       break;
     }
-    // printf("PC: %u ", dut_pc);
-    // for(int i = 0;i < 4;i++){
-    //   printf("REG[%d]= %u ", i, dut_regs[i]);
-    // }
-    // printf("\n");
   }
 
   dut.final();
