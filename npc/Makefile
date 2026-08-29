@@ -31,6 +31,9 @@ endif
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 
+# 待加载的程序镜像, 可通过 make sim IMG=xxx.bin 覆盖
+IMG ?= $(abspath ../am-kernels/tests/cpu-tests/build/dummy-minirv-npc.bin)
+
 $(shell mkdir -p $(BUILD_DIR))
 
 default: $(BIN)
@@ -71,11 +74,11 @@ sim:
 	@echo "-- VERILATE & BUILD --------"
 	$(MAKE) $(BIN)
 	@echo "-- RUN ---------------------"
-	@$(BIN)
+	@$(BIN) $(IMG)
 	@echo "-- DONE --------------------"
 
 run: $(BIN)
-	@$^
+	@$^ $(IMG)
 
 lint:
 	$(VERILATOR) --lint-only $(VSRCS) \

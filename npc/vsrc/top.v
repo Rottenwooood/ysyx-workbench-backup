@@ -255,7 +255,7 @@ ram #(5,32) gpr(
     .r_data1 (r_data1)
 );
 
-pc #(32,4) my_pc(
+pc #(32,4,32'h80000000) my_pc(
     .clk (clk),
     .reset (reset),
     .ben (ben),
