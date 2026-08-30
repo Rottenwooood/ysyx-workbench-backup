@@ -118,6 +118,7 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
+  uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   if (dut_regs[0] != 0) {
     printf("HIT BAD TRAP\n");
   }else {
