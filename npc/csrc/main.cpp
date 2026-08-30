@@ -118,6 +118,11 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
+  if (dut_regs[0] != 0) {
+    printf("HIT BAD TRAP\n");
+  }else {
+    printf("HIT GOOD TRAP\n");
+  }
 
   dut.final();
   return 0;
