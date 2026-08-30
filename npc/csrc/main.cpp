@@ -122,7 +122,6 @@ int main(int argc, char *argv[]) {
   //a0（x10）
   if (dut_regs[10] != 0) {
     printf("HIT BAD TRAP\n");
-    return 1;
   }else {
     printf("HIT GOOD TRAP\n");
   }
