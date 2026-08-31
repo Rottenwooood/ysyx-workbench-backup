@@ -24,7 +24,7 @@ extern "C" int pmem_read(int ram_raddr) {
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
   if (ram_waddr == 0x10000000) {  // 写入UART
-    fputc(ram_wdata & 0xff, stderr);   // 在stdio.h中定义
+    if (dut.clk) fputc(ram_wdata & 0xff, stderr);   // 组合逻辑块一拍会被求值两次, 只在写回那次打印
     return;
   }
   uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;

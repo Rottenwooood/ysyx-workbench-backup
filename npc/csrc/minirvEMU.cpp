@@ -70,17 +70,23 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
+				if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
+					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
 			}else if(func3 == 4){				//lbu
-				set_reg(rd, REF_M(R[rs1] + imm_i(inst)));
+				uint32_t a = R[rs1] + imm_i(inst);
+				if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
+					set_reg(rd, REF_M(a));
 			}
 			break;
 		case 0x23:								//store
 			if(func3 == 2){						//sw
 				uint32_t a = R[rs1] + imm_s(inst);
-				for(int i = 0;i < 4;i++) REF_M(a + i) = (R[rs2] >> (i*8)) & 0xFF;
+				if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
+					for(int i = 0;i < 4;i++) REF_M(a + i) = (R[rs2] >> (i*8)) & 0xFF;
 			}else if(func3 == 0){				//sb
-				REF_M(R[rs1] + imm_s(inst)) = R[rs2] & 0xFF;
+				uint32_t a = R[rs1] + imm_s(inst);
+				if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
+					REF_M(a) = R[rs2] & 0xFF;
 			}
 			break;
 		case 0x73:								//SYSTEM
