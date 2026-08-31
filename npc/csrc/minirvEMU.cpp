@@ -7,7 +7,7 @@
 #define REF_M(addr) M[(addr) - PMEM_BASE]
 // #define NPC_TRACE
 
-extern "C" int uart_status;   // 由 main.cpp 的 pmem_read 生成, 参考模型读同一份, 保证 diff 一致
+extern "C" int uart_status;
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
