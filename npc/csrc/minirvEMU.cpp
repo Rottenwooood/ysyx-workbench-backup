@@ -72,13 +72,13 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			// 读UART状态, 与 NPC 读到的保持一致
+				if(a == 0x10000004u)			
 					set_reg(rd, uart_status);
 				else if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
 					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
 			}else if(func3 == 4){				//lbu
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			// 读UART状态, 与 NPC 读到的保持一致
+				if(a == 0x10000004u)			
 					set_reg(rd, uart_status & 0xFF);
 				else if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
 					set_reg(rd, REF_M(a));

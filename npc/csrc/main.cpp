@@ -20,7 +20,7 @@ extern "C" void sim_finish() {
 extern "C" int uart_status = 1;   // 参考模型 minirvEMU 也读这个值, 保证 diff 一致
 extern "C" int pmem_read(int ram_raddr) {
   if (ram_raddr == 0x10000004) {  // 读出UART状态
-    if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%; 组合逻辑一拍求值两次, 只在第一次生成
+    if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%;
     return uart_status;
   }
   // 读存储器数组
