@@ -17,7 +17,13 @@ static volatile bool sim_finish_flag = false;
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
+extern "C" int uart_status = 1;
 extern "C" int pmem_read(int ram_raddr) {
+  if (ram_raddr == 0x10000004) {  // 读出UART状态
+    if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%
+    return uart_status;
+  }
+  // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
   if (a > PMEM_SIZE - 4) return 0;
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
@@ -118,10 +124,10 @@ int main(int argc, char *argv[]) {
       printf("Simulation stop\n");
       break;
     }
-    if (++cycle > CYCLE_LIMIT) {
-      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
-      break;
-    }
+    // if (++cycle > CYCLE_LIMIT) {
+    //   printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
+    //   break;
+    // }
   }
   uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
