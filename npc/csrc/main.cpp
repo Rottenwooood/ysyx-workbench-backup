@@ -99,7 +99,6 @@ int main(int argc, char *argv[]) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
-    printf("1");
 
     // DUT GPR: top.my_lsu.gpr.mem, see generated Vtop___024root.h
     uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
@@ -117,7 +116,6 @@ int main(int argc, char *argv[]) {
       printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
       break;
     }
-    printf("1");
   }
 
   //
