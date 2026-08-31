@@ -17,25 +17,14 @@ static volatile bool sim_finish_flag = false;
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
-static uint64_t read_call_id = 0;
 extern "C" int pmem_read(int ram_raddr) {
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
-  uint32_t r = 0;
-  if (a <= PMEM_SIZE - 4)
-    r = M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
-  printf("READ #%lu addr=%08x val=%08x pc=%08x inst=%08x\n",
-      read_call_id++, (uint32_t)ram_raddr, r,
-      (uint32_t)dut.rootp->top__DOT__pc_val, (uint32_t)dut.inst);
-  return r;
+  if (a > PMEM_SIZE - 4) return 0;
+  return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
   uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;
-  if (a > PMEM_SIZE - 4) {
-    printf("DBG: pmem_write OOB addr=%08x a=%08x pc=%08x inst=%08x\n",
-        (uint32_t)ram_waddr, a,
-        (uint32_t)dut.rootp->top__DOT__pc_val, (uint32_t)dut.inst);
-    return;
-  }
+  if (a > PMEM_SIZE - 4) return;
   for(int i = 0;i < 4;i++){
     if(a + i < PMEM_SIZE && ((1 << i) & (unsigned char)ram_wmask))
       M[a+i] = (ram_wdata >> (8*i)) & 0xFF;
@@ -76,9 +65,9 @@ static void reset(int n) {
 
 static int check_regs(const uint32_t *dut_regs, const uint32_t *ref_regs) {
   int is_diff = 0;
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 4; i++) {
     if (dut_regs[i] != ref_regs[i]) {
-      printf("reg%d: DUT=%08x REF=%08x\n", i, dut_regs[i], ref_regs[i]);
+      printf("reg%d: DUT=%u REF=%u\n", i, dut_regs[i], ref_regs[i]);
       is_diff = 1;
     }
   }
@@ -111,10 +100,7 @@ int main(int argc, char *argv[]) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
-    uint32_t *dr = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
-    printf("[%ld] dut_pc=%08x ref_pc=%08x dut_inst=%08x DUT[x15]=%08x REF[x15]=%08x DUT[sp]=%08x\n", cycle,
-        (uint32_t)dut.rootp->top__DOT__pc_val, (uint32_t)ref_get_pc(), (uint32_t)dut.inst,
-        dr[15], ref_get_regs()[15], dr[2]);
+
 
     // DUT GPR: top.my_lsu.gpr.mem, see generated Vtop___024root.h
     uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();

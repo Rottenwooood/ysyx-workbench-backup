@@ -5,7 +5,7 @@
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
 #define REF_M(addr) M[(addr) - PMEM_BASE]
-#define NPC_TRACE
+// #define NPC_TRACE
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
@@ -92,8 +92,8 @@ void ref_inst_cycle(){
 			break;
 	}
 #ifdef NPC_TRACE
-	printf("PC = %08x inst = %08x R9=%08x sp=%08x \n",
-			PC, inst, R[9], R[2]);
+	printf("PC = %08x inst = %08x R9=%08x \n",
+			PC, inst, R[9]);
 #endif
 	//PC+4
 	if(!jumped) PC = PC + 4;
