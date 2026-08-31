@@ -114,10 +114,10 @@ int main(int argc, char *argv[]) {
       printf("Simulation stop\n");
       break;
     }
-    // if (++cycle > CYCLE_LIMIT) {
-    //   printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
-    //   break;
-    // }
+    if (++cycle > CYCLE_LIMIT) {
+      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
+      break;
+    }
   }
 
   //
