@@ -23,6 +23,10 @@ extern "C" int pmem_read(int ram_raddr) {
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
+  if (ram_waddr == 0x10000000) {  // 写入UART
+    fputc(wdata & 0xff, stderr);   // 在stdio.h中定义
+    return;
+  }
   uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;
   if (a > PMEM_SIZE - 4) return;
   for(int i = 0;i < 4;i++){
