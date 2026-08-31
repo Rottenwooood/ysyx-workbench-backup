@@ -118,10 +118,10 @@ int main(int argc, char *argv[]) {
       printf("Simulation stop\n");
       break;
     }
-    if (++cycle > CYCLE_LIMIT) {
-      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
-      break;
-    }
+    // if (++cycle > CYCLE_LIMIT) {
+    //   printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
+    //   break;
+    // }
   }
   uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
