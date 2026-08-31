@@ -5,7 +5,7 @@
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
 #define REF_M(addr) M[(addr) - PMEM_BASE]
-#define NPC_TRACE
+// #define NPC_TRACE
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
@@ -70,17 +70,23 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
+				if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
+					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
 			}else if(func3 == 4){				//lbu
-				set_reg(rd, REF_M(R[rs1] + imm_i(inst)));
+				uint32_t a = R[rs1] + imm_i(inst);
+				if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
+					set_reg(rd, REF_M(a));
 			}
 			break;
 		case 0x23:								//store
 			if(func3 == 2){						//sw
 				uint32_t a = R[rs1] + imm_s(inst);
-				for(int i = 0;i < 4;i++) REF_M(a + i) = (R[rs2] >> (i*8)) & 0xFF;
+				if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
+					for(int i = 0;i < 4;i++) REF_M(a + i) = (R[rs2] >> (i*8)) & 0xFF;
 			}else if(func3 == 0){				//sb
-				REF_M(R[rs1] + imm_s(inst)) = R[rs2] & 0xFF;
+				uint32_t a = R[rs1] + imm_s(inst);
+				if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
+					REF_M(a) = R[rs2] & 0xFF;
 			}
 			break;
 		case 0x73:								//SYSTEM
@@ -92,8 +98,8 @@ void ref_inst_cycle(){
 			break;
 	}
 #ifdef NPC_TRACE
-	printf("PC = %08x inst = %08x R1=%08x R2=%08x R3=%08x R4=%08x R5=%08x R6=%08x R7=%08x\n",
-			PC, inst, R[1], R[2], R[3], R[4], R[5], R[6], R[7]);
+	printf("PC = %08x inst = %08x R9=%08x \n",
+			PC, inst, R[9]);
 #endif
 	//PC+4
 	if(!jumped) PC = PC + 4;

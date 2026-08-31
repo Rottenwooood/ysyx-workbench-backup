@@ -19,11 +19,16 @@ extern "C" void sim_finish() {
 }
 extern "C" int pmem_read(int ram_raddr) {
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
-  if (a + 4 > PMEM_SIZE) return 0;
+  if (a > PMEM_SIZE - 4) return 0;
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
 }
 extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
+  if (ram_waddr == 0x10000000) {  // 写入UART
+    if (dut.clk) fputc(ram_wdata & 0xff, stderr);   // 组合逻辑块一拍会被求值两次, 只在写回那次打印
+    return;
+  }
   uint32_t a = ((uint32_t)ram_waddr & ~0x3u) - PMEM_BASE;
+  if (a > PMEM_SIZE - 4) return;
   for(int i = 0;i < 4;i++){
     if(a + i < PMEM_SIZE && ((1 << i) & (unsigned char)ram_wmask))
       M[a+i] = (ram_wdata >> (8*i)) & 0xFF;
@@ -64,7 +69,7 @@ static void reset(int n) {
 
 static int check_regs(const uint32_t *dut_regs, const uint32_t *ref_regs) {
   int is_diff = 0;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 32; i++) {
     if (dut_regs[i] != ref_regs[i]) {
       printf("reg%d: DUT=%u REF=%u\n", i, dut_regs[i], ref_regs[i]);
       is_diff = 1;
@@ -92,14 +97,14 @@ int main(int argc, char *argv[]) {
   reset(10);
   ref_load_mem(M, img_size);
 
-  const long CYCLE_LIMIT = 1000000;
+  const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
-  // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真;
-  // 程序 halt() 为无限循环时由 cycle 上限兜底
+
   while (!sim_finish_flag) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
+
 
     // DUT GPR: top.my_lsu.gpr.mem, see generated Vtop___024root.h
     uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
