@@ -17,7 +17,13 @@ static volatile bool sim_finish_flag = false;
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
+extern "C" int uart_status = 1;   // 参考模型 minirvEMU 也读这个值, 保证 diff 一致
 extern "C" int pmem_read(int ram_raddr) {
+  if (ram_raddr == 0x10000004) {  // 读出UART状态
+    if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%; 组合逻辑一拍求值两次, 只在第一次生成
+    return uart_status;
+  }
+  // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
   if (a > PMEM_SIZE - 4) return 0;
   return M[a] | M[a+1]<<8 | M[a+2]<<16 | M[a+3]<<24;
