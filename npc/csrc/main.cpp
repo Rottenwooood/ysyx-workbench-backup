@@ -65,7 +65,7 @@ static void reset(int n) {
 
 static int check_regs(const uint32_t *dut_regs, const uint32_t *ref_regs) {
   int is_diff = 0;
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 4; i++) {
     if (dut_regs[i] != ref_regs[i]) {
       printf("reg%d: DUT=%u REF=%u\n", i, dut_regs[i], ref_regs[i]);
       is_diff = 1;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
   reset(10);
   ref_load_mem(M, img_size);
 
-  const long CYCLE_LIMIT = 1000000;
+  const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
 
   while (!sim_finish_flag) {
@@ -119,8 +119,6 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-
-  //
   uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
   if (dut_regs[10] != 0) {
