@@ -92,8 +92,8 @@ void ref_inst_cycle(){
 			break;
 	}
 #ifdef NPC_TRACE
-	printf("PC = %08x inst = %08x R1=%08x R2=%08x R3=%08x R4=%08x R5=%08x R6=%08x R7=%08x\n",
-			PC, inst, R[1], R[2], R[3], R[4], R[5], R[6], R[7]);
+	printf("PC = %08x inst = %08x R9=%08x \n",
+			PC, inst, R[9]);
 #endif
 	//PC+4
 	if(!jumped) PC = PC + 4;
