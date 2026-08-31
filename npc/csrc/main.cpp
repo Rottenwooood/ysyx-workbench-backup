@@ -94,8 +94,7 @@ int main(int argc, char *argv[]) {
 
   const long CYCLE_LIMIT = 1000000;
   long cycle = 0;
-  // RTL 执行到 ebreak 时通过 DPI-C 调用 sim_finish() 结束仿真;
-  // 程序 halt() 为无限循环时由 cycle 上限兜底
+
   while (!sim_finish_flag) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
@@ -118,6 +117,8 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
+
+  //
   uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
   if (dut_regs[10] != 0) {
