@@ -58,6 +58,11 @@ extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
   }
 }
 
+static uint32_t inst_fetch(uint32_t pc) {
+  uint32_t off = pc - PMEM_BASE;
+  return M[off] | (M[off+1]<<8) | (M[off+2]<<16) | (M[off+3]<<24);
+}
+
 static void load_img(const char *path) {
   FILE *fp = fopen(path, "rb");
   if (fp == NULL) {
@@ -120,6 +125,7 @@ int main(int argc, char *argv[]) {
   int ret = gettimeofday(&start, NULL);
   while (!sim_finish_flag) {
     current_time = get_time();
+    dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();
 
