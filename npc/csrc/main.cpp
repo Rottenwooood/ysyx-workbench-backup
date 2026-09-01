@@ -16,6 +16,7 @@ static size_t img_size = 0;
 static volatile bool sim_finish_flag = false;
 
 struct timeval start, end;
+const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
   // 返回从仿真开始所经过的时间, 单位为微秒
@@ -34,7 +35,7 @@ extern "C" int pmem_read(int ram_raddr) {
     if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%
     return uart_status;
   }
-  
+
   // 读出时钟的低32位
   else if (raddr == 0x20000000) { return get_time() & 0xffffffff; }
   // 读出时钟的高32位
