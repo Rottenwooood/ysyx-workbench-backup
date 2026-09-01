@@ -37,9 +37,9 @@ extern "C" int pmem_read(int ram_raddr) {
   }
 
   // 读出时钟的低32位
-  else if (raddr == 0x20000000) { return get_time() & 0xffffffff; }
+  else if (ram_raddr == 0x20000000) { return get_time() & 0xffffffff; }
   // 读出时钟的高32位
-  else if (raddr == 0x20000004) { return get_time() >> 32; }
+  else if (ram_raddr == 0x20000004) { return get_time() >> 32; }
 
   // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
