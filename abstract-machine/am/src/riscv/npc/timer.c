@@ -4,9 +4,9 @@ void __am_timer_init() {
 }
 
 void __am_timer_uptime(AM_TIMER_UPTIME_T *uptime) {
-  volatile uint32_t *p1 = (volatile uint32_t *)0x20000000ul;
-  volatile uint32_t *p2 = (volatile uint32_t *)0x20000004ul;
-  uptime->us = *p1 + *p2 << 32;
+  volatile uint64_t *p1 = (volatile uint64_t *)0x20000000ul;
+  volatile uint64_t *p2 = (volatile uint64_t *)0x20000004ul;
+  uptime->us = *p1 + (*p2 << 32);
 }
 
 void __am_timer_rtc(AM_TIMER_RTC_T *rtc) {
