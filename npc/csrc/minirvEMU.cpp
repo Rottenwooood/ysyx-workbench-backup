@@ -5,7 +5,7 @@
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
 #define REF_M(addr) M[(addr) - PMEM_BASE]
-#define NPC_TRACE
+// #define NPC_TRACE
 
 extern int uart_status;
 extern unsigned long long current_time;
