@@ -19,14 +19,11 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  // 返回从仿真开始所经过的时间, 单位为微秒
-  // 可通过gettimeofday()来实现
   int ret = gettimeofday(&end, NULL);
   unsigned long long diff = (end.tv_sec * Converter + end.tv_usec) - (start.tv_sec * Converter + start.tv_usec);
   return diff;
 }
 
-// 每个循环迭代更新一次, DUT 与 ref 共用同一时间快照, 避免两次 get_time() 间跨过 1us 造成假 diff
 unsigned long long current_time = 0;
 
 extern "C" void sim_finish() {
