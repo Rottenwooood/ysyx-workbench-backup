@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <Vtop.h>
 #include <Vtop___024root.h>
+#include <sys/time.h>
 
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
@@ -14,6 +15,16 @@ static size_t img_size = 0;
 
 static volatile bool sim_finish_flag = false;
 
+struct timeval start, end;
+
+unsigned long long get_time() {
+  // 返回从仿真开始所经过的时间, 单位为微秒
+  // 可通过gettimeofday()来实现
+  int ret = gettimeofday(&end, NULL);
+  unsigned long long diff = (end.tv_sec * Converter + end.tv_usec) - (start.tv_sec * Converter + start.tv_usec);
+  return diff;
+}
+
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
@@ -23,6 +34,12 @@ extern "C" int pmem_read(int ram_raddr) {
     if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%
     return uart_status;
   }
+  
+  // 读出时钟的低32位
+  else if (raddr == 0x20000000) { return get_time() & 0xffffffff; }
+  // 读出时钟的高32位
+  else if (raddr == 0x20000004) { return get_time() >> 32; }
+
   // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
   if (a > PMEM_SIZE - 4) return 0;
@@ -105,6 +122,7 @@ int main(int argc, char *argv[]) {
 
   const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
+  ret = gettimeofday(&start, NULL);
 
   while (!sim_finish_flag) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
