@@ -20,8 +20,9 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  // int ret = gettimeofday(&end, NULL);
-  unsigned long long diff = cnt / (100 * 1000 * 100) * 1000 * 1000;
+  // 模拟时钟 100MHz: 1s = 100*1000*1000 = 1e8 个周期
+  // 返回从仿真开始经过的微秒数(按整秒取整)
+  unsigned long long diff = cnt / (100 * 1000 * 1000) * 1000 * 1000;
   return diff;
 }
 
