@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 
   const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
-  ret = gettimeofday(&start, NULL);
+  int ret = gettimeofday(&start, NULL);
 
   while (!sim_finish_flag) {
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
