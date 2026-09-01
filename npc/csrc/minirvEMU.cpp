@@ -73,24 +73,28 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			
-					set_reg(rd, uart_status);
+				uint32_t val = 0;
+				if(a == 0x10000004u)
+					val = uart_status;
 				else if(a == 0x20000000)
-					set_reg(rd, current_time & 0xffffffff);
+					val = current_time & 0xffffffff;
 				else if(a == 0x20000004)
-					set_reg(rd, current_time >> 32);
+					val = current_time >> 32;
 				else if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
-					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
+					val = REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24;
+				set_reg(rd, val);   // 未映射地址 DUT 读到 0, ref 也要写 0
 			}else if(func3 == 4){				//lbu
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			
-					set_reg(rd, uart_status & 0xFF);
+				uint32_t val = 0;
+				if(a == 0x10000004u)
+					val = uart_status & 0xFF;
 				else if(a == 0x20000000)
-					set_reg(rd, current_time & 0xffffffff);
+					val = current_time & 0xffffffff;
 				else if(a == 0x20000004)
-					set_reg(rd, current_time >> 32);
+					val = current_time >> 32;
 				else if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
-					set_reg(rd, REF_M(a));
+					val = REF_M(a);
+				set_reg(rd, val);   // 未映射地址 DUT 读到 0, ref 也要写 0
 			}
 			break;
 		case 0x23:								//store
