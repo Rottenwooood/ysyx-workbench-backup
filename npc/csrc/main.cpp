@@ -12,6 +12,7 @@
 static TOP_NAME dut;
 static uint8_t M[PMEM_SIZE];
 static size_t img_size = 0;
+uint64_t cnt = 0;
 
 static volatile bool sim_finish_flag = false;
 
@@ -19,8 +20,8 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  int ret = gettimeofday(&end, NULL);
-  unsigned long long diff = (end.tv_sec * Converter + end.tv_usec) - (start.tv_sec * Converter + start.tv_usec);
+  // int ret = gettimeofday(&end, NULL);
+  unsigned long long diff = cnt / (100 * 1000 * 100) * 1000 * 1000;
   return diff;
 }
 
@@ -124,7 +125,6 @@ int main(int argc, char *argv[]) {
   const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
   int ret = gettimeofday(&start, NULL);
-
   while (!sim_finish_flag) {
     current_time = get_time();
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
@@ -148,6 +148,7 @@ int main(int argc, char *argv[]) {
     //   printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
     //   break;
     // }
+    cnt++;
   }
   uint32_t *dut_regs = dut.rootp->top__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
