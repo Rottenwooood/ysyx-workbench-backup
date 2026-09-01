@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <Vtop.h>
 #include <Vtop___024root.h>
+#include <sys/time.h>
 
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
@@ -14,15 +15,32 @@ static size_t img_size = 0;
 
 static volatile bool sim_finish_flag = false;
 
+struct timeval start, end;
+const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
+
+unsigned long long get_time() {
+  int ret = gettimeofday(&end, NULL);
+  unsigned long long diff = (end.tv_sec * Converter + end.tv_usec) - (start.tv_sec * Converter + start.tv_usec);
+  return diff;
+}
+
+unsigned long long current_time = 0;
+
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
-extern "C" int uart_status = 1;
+extern int uart_status = 1;
 extern "C" int pmem_read(int ram_raddr) {
   if (ram_raddr == 0x10000004) {  // 读出UART状态
     if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%
     return uart_status;
   }
+
+  // 读出时钟的低32位
+  else if (ram_raddr == 0x20000000) { return current_time & 0xffffffff; }
+  // 读出时钟的高32位
+  else if (ram_raddr == 0x20000004) { return current_time >> 32; }
+
   // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
   if (a > PMEM_SIZE - 4) return 0;
@@ -105,8 +123,10 @@ int main(int argc, char *argv[]) {
 
   const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
+  int ret = gettimeofday(&start, NULL);
 
   while (!sim_finish_flag) {
+    current_time = get_time();
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();

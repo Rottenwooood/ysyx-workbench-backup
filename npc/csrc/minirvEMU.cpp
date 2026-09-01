@@ -8,6 +8,7 @@
 // #define NPC_TRACE
 
 extern "C" int uart_status;
+extern unsigned long long current_time;
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
@@ -72,16 +73,28 @@ void ref_inst_cycle(){
 		case 0x03:								//load
 			if(func3 == 2){						//lw
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			
-					set_reg(rd, uart_status);
+				uint32_t val = 0; // 清零
+				if(a == 0x10000004u)
+					val = uart_status;
+				else if(a == 0x20000000)
+					val = current_time & 0xffffffff;
+				else if(a == 0x20000004)
+					val = current_time >> 32;
 				else if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
-					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
+					val = REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24;
+				set_reg(rd, val);
 			}else if(func3 == 4){				//lbu
 				uint32_t a = R[rs1] + imm_i(inst);
-				if(a == 0x10000004u)			
-					set_reg(rd, uart_status & 0xFF);
+				uint32_t val = 0; // 清零
+				if(a == 0x10000004u)
+					val = uart_status & 0xFF;
+				else if(a == 0x20000000)
+					val = current_time & 0xffffffff;
+				else if(a == 0x20000004)
+					val = current_time >> 32;
 				else if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
-					set_reg(rd, REF_M(a));
+					val = REF_M(a);
+				set_reg(rd, val);
 			}
 			break;
 		case 0x23:								//store
@@ -98,8 +111,6 @@ void ref_inst_cycle(){
 		case 0x73:								//SYSTEM
 			if(inst == 0x00100073){				//ebreak
 				printf("EBREAK: program terminates correctly\n");
-				// 结束仿真由 RTL 通过 DPI-C 的 sim_finish() 通知,
-				// 这里不再 exit()
 			}
 			break;
 	}
