@@ -1,3 +1,9 @@
+`ifndef SYNTHESIS
+import "DPI-C" function void sim_finish();
+import "DPI-C" function int pmem_read(input int ram_raddr);
+import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
+`endif
+
 module top(
     input clk,reset,
     input [31:0] inst,
@@ -6,10 +12,65 @@ module top(
     output [6:0] reg2,
     output [6:0] reg3
 );
-import "DPI-C" function void sim_finish();
-import "DPI-C" function int pmem_read(input int ram_raddr);
-import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
-reg [31:0] pc_val;
+wire [31:0] pc_val;
+wire [31:0] ram_raddr,ram_waddr,ram_wdata;
+wire [7:0] ram_wmask;
+wire ram_en,ram_wen;
+`ifndef SYNTHESIS
+reg [31:0] ram_rdata;
+`else
+wire [31:0] ram_rdata;
+`endif
+
+NPC npc(
+    .clk (clk),
+    .reset (reset),
+    .inst (inst),
+    .reg0 (reg0),
+    .reg1 (reg1),
+    .reg2 (reg2),
+    .reg3 (reg3),
+    .pc_val (pc_val),
+    .ram_raddr (ram_raddr),
+    .ram_waddr (ram_waddr),
+    .ram_wdata (ram_wdata),
+    .ram_wmask (ram_wmask),
+    .ram_en (ram_en),
+    .ram_wen (ram_wen),
+    .ram_rdata (ram_rdata)
+);
+
+`ifndef SYNTHESIS
+always @(*) begin
+  if (ram_en) begin // 有读写请求时
+    ram_rdata = pmem_read(ram_raddr);
+    if (ram_wen) begin // 有写请求时
+      pmem_write(ram_waddr, ram_wdata, ram_wmask);
+    end
+  end
+  else begin
+    ram_rdata = 0;
+  end
+end
+`endif
+endmodule
+
+module NPC(
+    input clk,reset,
+    input [31:0] inst,
+    output [6:0] reg0,
+    output [6:0] reg1,
+    output [6:0] reg2,
+    output [6:0] reg3,
+    output [31:0] pc_val,
+    output [31:0] ram_raddr,
+    output [31:0] ram_waddr,
+    output [31:0] ram_wdata,
+    output [7:0] ram_wmask,
+    output ram_en,
+    output ram_wen,
+    input [31:0] ram_rdata
+);
 wire [4:0] rs1;
 wire [4:0] rs2;
 wire [31:0] r_data0;
@@ -26,25 +87,6 @@ wire [31:0] imm_s;
 wire [31:0] imm_u;
 wire [6:0] opcode;
 wire [2:0] func3;
-reg ram_en;
-reg ram_wen;
-reg [31:0] ram_rdata;
-reg [31:0] ram_raddr;
-reg [31:0] ram_waddr;
-reg [31:0] ram_wdata;
-reg [7:0] ram_wmask;
-always @(*) begin
-  if (ram_en) begin // 有读写请求时
-    ram_rdata = pmem_read(ram_raddr);
-    if (ram_wen) begin // 有写请求时
-      pmem_write(ram_waddr, ram_wdata, ram_wmask);
-    end
-  end
-  else begin
-    ram_rdata = 0;
-  end
-end
-
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -66,10 +108,12 @@ hex7seg my_seg3(
     .out (reg3)
 );
 
+`ifndef SYNTHESIS
 always @(posedge clk) begin
   if (!reset && inst == 32'h00100073)
     sim_finish();
 end
+`endif
 
 IDU my_idu(
     .inst (inst),
