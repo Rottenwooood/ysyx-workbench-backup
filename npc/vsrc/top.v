@@ -1,24 +1,33 @@
-module top(
+// ============ 处理器模块(综合顶层): 不含存储器与不可综合代码 ============
+module NPC(
     input clk,reset,
-    input [31:0] inst,
-    output [6:0] reg0,
-    output [6:0] reg1,
-    output [6:0] reg2,
-    output [6:0] reg3
+    // 指令访存接口
+    output [31:0] inst_req_addr,   // 取指地址(PC)
+    input  [31:0] inst,            // 指令
+    // 数据访存接口
+    output [31:0] dmem_raddr,
+    output [31:0] dmem_waddr,
+    output [31:0] dmem_wdata,
+    output [7:0]  dmem_wmask,
+    output        dmem_en,
+    output        dmem_wen,
+    input  [31:0] dmem_rdata,
+    // 供外部观测(显示用)
+    output [31:0] pc_val,
+    output [31:0] r_data1,
+    output        reg_en,
+    // ebreak 检测信号(顶层在仿真时调用 sim_finish)
+    output        ebreak
 );
-import "DPI-C" function void sim_finish();
-import "DPI-C" function int pmem_read(input int ram_raddr);
-import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
-reg [31:0] pc_val;
+reg [31:0] pc_val_r;
 wire [4:0] rs1;
 wire [4:0] rs2;
 wire [31:0] r_data0;
-wire [31:0] r_data1;
-reg [31:0] w_data;
+wire [31:0] r_data1_r;
+wire [31:0] w_data;
 wire [4:0] w_addr;
 wire ben,wen,ren;
 wire [31:0] b_addr;
-wire reg_en;
 wire [31:0] sum;
 wire [31:0] equal;
 wire [31:0] imm_i;
@@ -26,24 +35,123 @@ wire [31:0] imm_s;
 wire [31:0] imm_u;
 wire [6:0] opcode;
 wire [2:0] func3;
-reg ram_en;
-reg ram_wen;
-reg [31:0] ram_rdata;
-reg [31:0] ram_raddr;
-reg [31:0] ram_waddr;
-reg [31:0] ram_wdata;
-reg [7:0] ram_wmask;
-always @(*) begin
-  if (ram_en) begin // 有读写请求时
-    ram_rdata = pmem_read(ram_raddr);
-    if (ram_wen) begin // 有写请求时
-      pmem_write(ram_waddr, ram_wdata, ram_wmask);
-    end
-  end
-  else begin
-    ram_rdata = 0;
-  end
-end
+wire ram_en,ram_wen;
+wire [31:0] ram_raddr,ram_waddr,ram_wdata,ram_rdata;
+wire [7:0] ram_wmask;
+
+assign pc_val = pc_val_r;
+assign r_data1 = r_data1_r;
+
+// 数据访存接口: NPC 内部访存信号 <-> 顶层访存总线
+assign dmem_raddr = ram_raddr;
+assign dmem_waddr = ram_waddr;
+assign dmem_wdata = ram_wdata;
+assign dmem_wmask = ram_wmask;
+assign dmem_en    = ram_en;
+assign dmem_wen   = ram_wen;
+assign ram_rdata  = dmem_rdata;
+
+// 指令访存接口: 取指地址
+assign inst_req_addr = pc_val_r;
+
+// ebreak 检测(纯组合, 可综合; 顶层在仿真时据此调用 sim_finish)
+assign ebreak = (inst == 32'h00100073);
+
+IDU my_idu(
+    .inst (inst),
+    .sum (sum),
+    .equal (equal),
+    .imm_i (imm_i),
+    .imm_s (imm_s),
+    .imm_u (imm_u),
+    .pc_val (pc_val_r),
+    .opcode (opcode),
+    .func3 (func3),
+    .ram_rdata (ram_rdata),
+    .r_data1 (r_data1_r),
+    .ram_raddr (ram_raddr),
+    .ram_waddr (ram_waddr),
+    .ram_wdata (ram_wdata),
+    .ram_wmask (ram_wmask),
+    .ram_en (ram_en),
+    .ram_wen (ram_wen),
+    .rs1 (rs1),
+    .rs2 (rs2),
+    .w_data (w_data),
+    .w_addr (w_addr),
+    .ben (ben),
+    .wen (wen),
+    .ren (ren),
+    .b_addr (b_addr),
+    .reg_en (reg_en)
+);
+
+EXU my_exu(
+    .r_data0 (r_data0),
+    .r_data1 (r_data1_r),
+    .imm_i (imm_i),
+    .imm_s (imm_s),
+    .opcode (opcode),
+    .sum (sum),
+    .equal (equal)
+);
+
+LSU my_lsu(
+    .clk (clk),
+    .reset (reset),
+    .wen (wen),
+    .ren (ren),
+    .ben (ben),
+    .b_addr (b_addr),
+    .rs1 (rs1),
+    .rs2 (rs2),
+    .w_addr (w_addr),
+    .w_data (w_data),
+    .r_data0 (r_data0),
+    .r_data1 (r_data1_r),
+    .pc_val (pc_val_r)
+);
+endmodule
+
+// ============ 仿真顶层: NPC + 外部存储器(访存通过 DPI-C) ============
+`ifndef SYNTHESIS
+import "DPI-C" function void sim_finish();
+import "DPI-C" function int pmem_read(input int ram_raddr);
+import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
+`endif
+
+module top(
+    input clk,reset,
+    output [6:0] reg0,
+    output [6:0] reg1,
+    output [6:0] reg2,
+    output [6:0] reg3
+);
+wire [31:0] inst_req_addr;
+wire [31:0] inst;
+wire [31:0] dmem_raddr,dmem_waddr,dmem_wdata,dmem_rdata;
+wire [7:0] dmem_wmask;
+wire dmem_en,dmem_wen;
+wire [31:0] pc_val,r_data1;
+wire reg_en,ebreak;
+
+NPC npc(
+    .clk (clk),
+    .reset (reset),
+    .inst_req_addr (inst_req_addr),
+    .inst (inst),
+    .dmem_raddr (dmem_raddr),
+    .dmem_waddr (dmem_waddr),
+    .dmem_wdata (dmem_wdata),
+    .dmem_wmask (dmem_wmask),
+    .dmem_en (dmem_en),
+    .dmem_wen (dmem_wen),
+    .dmem_rdata (dmem_rdata),
+    .pc_val (pc_val),
+    .r_data1 (r_data1),
+    .reg_en (reg_en),
+    .ebreak (ebreak)
+);
 
 hex7seg my_seg0(
     .in (r_data1[3:0]),
@@ -66,65 +174,36 @@ hex7seg my_seg3(
     .out (reg3)
 );
 
+`ifndef SYNTHESIS
+// ---- 存储器(仅仿真): 通过 DPI-C 访问 C++ 侧内存, 综合时在芯片外部 ----
+reg [31:0] ram_rdata_r;
+always @(*) begin
+  if (dmem_en) begin // 有读写请求时
+    ram_rdata_r = pmem_read(dmem_raddr);
+    if (dmem_wen) begin // 有写请求时
+      pmem_write(dmem_waddr, dmem_wdata, dmem_wmask);
+    end
+  end
+  else begin
+    ram_rdata_r = 0;
+  end
+end
+assign dmem_rdata = ram_rdata_r;
+
+// 取指: 按 PC 从存储器读指令
+assign inst = pmem_read(inst_req_addr);
+
+// 程序执行到 ebreak 时通知仿真环境结束
 always @(posedge clk) begin
-  if (!reset && inst == 32'h00100073)
+  if (!reset && ebreak)
     sim_finish();
 end
+`else
+// ---- 综合: 存储器在芯片外部, NPC 为综合顶层 ----
+assign dmem_rdata = 32'b0;
+assign inst = 32'b0;
+`endif
 
-IDU my_idu(
-    .inst (inst),
-    .sum (sum),
-    .equal (equal),
-    .imm_i (imm_i),
-    .imm_s (imm_s),
-    .imm_u (imm_u),
-    .pc_val (pc_val),
-    .opcode (opcode),
-    .func3 (func3),
-    .ram_rdata (ram_rdata),
-    .r_data1 (r_data1),
-    .ram_raddr (ram_raddr),
-    .ram_waddr (ram_waddr),
-    .ram_wdata (ram_wdata),
-    .ram_wmask (ram_wmask),
-    .ram_en (ram_en),
-    .ram_wen (ram_wen),
-    .rs1 (rs1),
-    .rs2 (rs2),
-    .w_data (w_data),
-    .w_addr (w_addr),
-    .ben (ben),
-    .wen (wen),
-    .ren (ren),
-    .b_addr (b_addr),
-    .reg_en (reg_en)
-);
-
-EXU my_exu(
-    .r_data0 (r_data0),
-    .r_data1 (r_data1),
-    .imm_i (imm_i),
-    .imm_s (imm_s),
-    .opcode (opcode),
-    .sum (sum),
-    .equal (equal)
-);
-
-LSU my_lsu(
-    .clk (clk),
-    .reset (reset),
-    .wen (wen),
-    .ren (ren),
-    .ben (ben),
-    .b_addr (b_addr),
-    .rs1 (rs1),
-    .rs2 (rs2),
-    .w_addr (w_addr),
-    .w_data (w_data),
-    .r_data0 (r_data0),
-    .r_data1 (r_data1),
-    .pc_val (pc_val)
-);
 endmodule
 
 module IDU(
