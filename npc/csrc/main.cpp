@@ -20,7 +20,7 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  return cnt / 100; // cnt / (100 * 1000 * 1000） * 1000 * 1000
+  return cnt / 482; // cnt / (100 * 1000 * 1000） * 1000 * 1000
 }
 
 unsigned long long current_time = 0;

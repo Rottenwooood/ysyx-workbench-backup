@@ -1,4 +1,5 @@
 `ifndef SYNTHESIS
+import "DPI-C" function void sim_finish();
 import "DPI-C" function int pmem_read(input int ram_raddr);
 import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata, input byte ram_wmask);
 `endif
@@ -53,10 +54,6 @@ always @(*) begin
 end
 `endif
 endmodule
-
-`ifndef SYNTHESIS
-import "DPI-C" function void sim_finish();
-`endif
 
 module NPC(
     input clk,reset,
