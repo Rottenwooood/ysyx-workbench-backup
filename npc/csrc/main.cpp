@@ -26,6 +26,9 @@ unsigned long long get_time() {
   return diff;
 }
 
+// 每个循环迭代更新一次, DUT 与 ref 共用同一时间快照, 避免两次 get_time() 间跨过 1us 造成假 diff
+unsigned long long current_time = 0;
+
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
@@ -37,9 +40,9 @@ extern "C" int pmem_read(int ram_raddr) {
   }
 
   // 读出时钟的低32位
-  else if (ram_raddr == 0x20000000) { return get_time() & 0xffffffff; }
+  else if (ram_raddr == 0x20000000) { return current_time & 0xffffffff; }
   // 读出时钟的高32位
-  else if (ram_raddr == 0x20000004) { return get_time() >> 32; }
+  else if (ram_raddr == 0x20000004) { return current_time >> 32; }
 
   // 读存储器数组
   uint32_t a = ((uint32_t)ram_raddr & ~0x3u) - PMEM_BASE;
@@ -126,6 +129,7 @@ int main(int argc, char *argv[]) {
   int ret = gettimeofday(&start, NULL);
 
   while (!sim_finish_flag) {
+    current_time = get_time();
     dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
     dut_single_cycle();
     ref_inst_cycle();

@@ -8,6 +8,7 @@
 // #define NPC_TRACE
 
 extern int uart_status;
+extern unsigned long long current_time;
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
@@ -75,9 +76,9 @@ void ref_inst_cycle(){
 				if(a == 0x10000004u)			
 					set_reg(rd, uart_status);
 				else if(a == 0x20000000)
-					set_reg(rd,get_time() & 0xffffffff;)
+					set_reg(rd, current_time & 0xffffffff);
 				else if(a == 0x20000004)
-					set_reg(rd,get_time() >> 32;)
+					set_reg(rd, current_time >> 32);
 				else if(a >= PMEM_BASE && a + 4 <= PMEM_BASE + PMEM_SIZE)
 					set_reg(rd, REF_M(a) | REF_M(a+1)<<8 | REF_M(a+2)<<16 | REF_M(a+3)<<24);
 			}else if(func3 == 4){				//lbu
@@ -85,9 +86,9 @@ void ref_inst_cycle(){
 				if(a == 0x10000004u)			
 					set_reg(rd, uart_status & 0xFF);
 				else if(a == 0x20000000)
-					set_reg(rd,get_time() & 0xffffffff;)
+					set_reg(rd, current_time & 0xffffffff);
 				else if(a == 0x20000004)
-					set_reg(rd,get_time() >> 32;)
+					set_reg(rd, current_time >> 32);
 				else if(a >= PMEM_BASE && a < PMEM_BASE + PMEM_SIZE)
 					set_reg(rd, REF_M(a));
 			}
