@@ -29,7 +29,7 @@ unsigned long long get_time() {
 extern "C" void sim_finish() {
   sim_finish_flag = true;
 }
-extern "C" int uart_status = 1;
+extern int uart_status = 1;
 extern "C" int pmem_read(int ram_raddr) {
   if (ram_raddr == 0x10000004) {  // 读出UART状态
     if (dut.clk == 0) uart_status = (rand() & 0x7) == 0 ? 1 : 0; // 就绪概率为12.5%

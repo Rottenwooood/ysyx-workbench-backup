@@ -7,7 +7,7 @@
 #define REF_M(addr) M[(addr) - PMEM_BASE]
 // #define NPC_TRACE
 
-extern "C" int uart_status;
+extern int uart_status;
 
 static uint32_t PC = PMEM_BASE;
 static uint32_t R[32];
