@@ -4,15 +4,18 @@
 #include <stdlib.h>
 #include <Vtop.h>
 #include <Vtop___024root.h>
+#include <verilated_fst_c.h>
 #include <sys/time.h>
 
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
 
 static TOP_NAME dut;
+static VerilatedFstC* tfp = NULL;
+static unsigned long long sim_time = 0;
 static uint8_t M[PMEM_SIZE];
 static size_t img_size = 0;
-unsigned long long cnt = 0;
+unsigned long long commit_cnt = 0;
 
 static volatile bool sim_finish_flag = false;
 
@@ -20,7 +23,7 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  return cnt / 100; // cnt / (100 * 1000 * 1000） * 1000 * 1000
+  return commit_cnt / 482;
 }
 
 unsigned long long current_time = 0;
@@ -58,11 +61,6 @@ extern "C" void pmem_write(int ram_waddr, int ram_wdata, char ram_wmask) {
   }
 }
 
-static uint32_t inst_fetch(uint32_t pc) {
-  uint32_t off = pc - PMEM_BASE;
-  return M[off] | (M[off+1]<<8) | (M[off+2]<<16) | (M[off+3]<<24);
-}
-
 static void load_img(const char *path) {
   FILE *fp = fopen(path, "rb");
   if (fp == NULL) {
@@ -80,8 +78,8 @@ uint32_t *ref_get_regs();
 uint32_t ref_get_pc();
 
 static void dut_single_cycle() {
-  dut.clk = 0; dut.eval();
-  dut.clk = 1; dut.eval();
+  dut.clk = 0; dut.eval(); if (tfp) tfp->dump((vluint64_t)(sim_time++));
+  dut.clk = 1; dut.eval(); if (tfp) tfp->dump((vluint64_t)(sim_time++));
 }
 
 static void reset(int n) {
@@ -117,18 +115,34 @@ int main(int argc, char *argv[]) {
   }
   load_img(argv[1]);
 
+  if (getenv("NPC_DUMP_FST")) {
+    Verilated::traceEverOn(true);
+    tfp = new VerilatedFstC;
+    dut.trace(tfp, 99);
+    tfp->open("build/npc.fst");
+  }
+
   reset(10);
   ref_load_mem(M, img_size);
 
   const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
+  long stall = 0;
   int ret = gettimeofday(&start, NULL);
   while (!sim_finish_flag) {
     current_time = get_time();
-    dut.inst = inst_fetch(dut.rootp->top__DOT__pc_val);
-    dut_single_cycle();
-    ref_inst_cycle();
-
+    dut.clk = 0; dut.eval(); if (tfp) tfp->dump((vluint64_t)(sim_time++));
+    int commit = dut.commit;
+    dut.clk = 1; dut.eval(); if (tfp) tfp->dump((vluint64_t)(sim_time++));
+    if (commit) {
+      stall = 0;
+      commit_cnt++;
+      ref_inst_cycle();
+    }
+    else if (++stall > 8) {
+      printf("no commit for %ld cycles, simulation stuck\n", stall);
+      break;
+    }
 
     // DUT GPR: top.npc.my_lsu.gpr.mem, see generated Vtop___024root.h
     uint32_t *dut_regs = dut.rootp->top__DOT__npc__DOT__my_lsu__DOT__gpr__DOT__mem.data();
@@ -142,11 +156,10 @@ int main(int argc, char *argv[]) {
       printf("Simulation stop\n");
       break;
     }
-    // if (++cycle > CYCLE_LIMIT) {
-    //   printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
-    //   break;
-    // }
-    cnt++;
+    if (++cycle > CYCLE_LIMIT) {
+      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
+      break;
+    }
   }
   uint32_t *dut_regs = dut.rootp->top__DOT__npc__DOT__my_lsu__DOT__gpr__DOT__mem.data();
   //a0（x10）
@@ -156,7 +169,8 @@ int main(int argc, char *argv[]) {
   }else {
     printf("HIT GOOD TRAP\n");
   }
-
+  printf("IPC = %f\n",(double)commit_cnt / (double)cycle);
+  if (tfp) tfp->close();
   dut.final();
   return 0;
 }

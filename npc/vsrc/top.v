@@ -6,7 +6,7 @@ import "DPI-C" function void pmem_write(input int ram_waddr, input int ram_wdata
 
 module top(
     input clk,reset,
-    input [31:0] inst,
+    output commit,
     output [6:0] reg0,
     output [6:0] reg1,
     output [6:0] reg2,
@@ -18,13 +18,16 @@ wire [7:0] ram_wmask;
 wire ram_en,ram_wen;
 `ifndef SYNTHESIS
 reg [31:0] ram_rdata;
+reg [31:0] inst;
 `else
 wire [31:0] ram_rdata;
+wire [31:0] inst;
 `endif
 
 NPC npc(
     .clk (clk),
     .reset (reset),
+    .commit (commit),
     .inst (inst),
     .reg0 (reg0),
     .reg1 (reg1),
@@ -41,6 +44,13 @@ NPC npc(
 );
 
 `ifndef SYNTHESIS
+always @(posedge clk) begin
+  if (reset)
+    inst <= 32'b0;
+  else
+    inst <= pmem_read(pc_val);
+end
+
 always @(*) begin
   if (ram_en) begin // 有读写请求时
     ram_rdata = pmem_read(ram_raddr);
@@ -58,6 +68,7 @@ endmodule
 module NPC(
     input clk,reset,
     input [31:0] inst,
+    output commit,
     output [6:0] reg0,
     output [6:0] reg1,
     output [6:0] reg2,
@@ -87,6 +98,7 @@ wire [31:0] imm_s;
 wire [31:0] imm_u;
 wire [6:0] opcode;
 wire [2:0] func3;
+wire [31:0] ifu_inst;
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -110,13 +122,21 @@ hex7seg my_seg3(
 
 `ifndef SYNTHESIS
 always @(posedge clk) begin
-  if (!reset && inst == 32'h00100073)
+  if (!reset && commit && ifu_inst == 32'h00100073)
     sim_finish();
 end
 `endif
 
+IFU my_ifu(
+    .clk (clk),
+    .reset (reset),
+    .ifu_rdata (inst),
+    .inst (ifu_inst),
+    .commit (commit)
+);
+
 IDU my_idu(
-    .inst (inst),
+    .inst (ifu_inst),
     .sum (sum),
     .equal (equal),
     .imm_i (imm_i),
@@ -157,6 +177,7 @@ EXU my_exu(
 LSU my_lsu(
     .clk (clk),
     .reset (reset),
+    .pc_en (commit),
     .wen (wen),
     .ren (ren),
     .ben (ben),
@@ -275,7 +296,7 @@ alu #(32) my_equal(
 endmodule
 
 module LSU(
-    input clk,wen,ren,ben,reset,
+    input clk,wen,ren,ben,reset,pc_en,
     input [31:0] b_addr,
     input [4:0] rs1,
     input [4:0] rs2,
@@ -299,12 +320,43 @@ ram #(5,32) gpr(
     .r_data1 (r_data1)
 );
 
+wire [31:0] pc_b_addr;
+wire pc_ben;
+assign pc_ben    = pc_en ? ben   : 1'b1;
+assign pc_b_addr = pc_en ? b_addr : pc_val;
+
 pc #(32,4,32'h80000000) my_pc(
     .clk (clk),
     .reset (reset),
-    .ben (ben),
-    .b_addr (b_addr),
+    .ben (pc_ben),
+    .b_addr (pc_b_addr),
     .out (pc_val)
 );
 
+endmodule
+
+module IFU(
+    input clk,
+    input reset,
+    input [31:0] ifu_rdata,
+    output [31:0] inst,
+    output commit
+);
+parameter IDLE = 1'b0, WAIT = 1'b1;
+reg state,next_state;
+always@(*) begin
+    case(state)
+        IDLE: next_state = WAIT;
+        WAIT: next_state = IDLE;
+        default: next_state = IDLE;
+    endcase
+end
+always@(posedge clk) begin
+    if(reset)
+        state <= IDLE;
+    else
+        state <= next_state;
+end
+assign commit = state == WAIT;
+assign inst = commit ? ifu_rdata : 32'b0;
 endmodule
