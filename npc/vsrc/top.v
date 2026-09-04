@@ -144,8 +144,14 @@ CTRL my_ctrl(
 );
 
 IFU my_ifu(
+    .clk (clk),
+    .reset (reset),
+    .pc_en (pc_en),
+    .ben (ben),
+    .b_addr (b_addr),
     .ifu_rdata (inst),
     .ifu_valid (ifu_valid),
+    .pc_val (pc_val),
     .inst (ifu_inst)
 );
 
@@ -197,11 +203,8 @@ LSU my_lsu(
 WBU my_wbu(
     .clk (clk),
     .reset (reset),
-    .pc_en (pc_en),
     .wen (rf_wen),
     .ren (ren),
-    .ben (ben),
-    .b_addr (b_addr),
     .rs1 (rs1),
     .rs2 (rs2),
     .w_addr (w_addr),
@@ -256,11 +259,30 @@ endmodule
 输出pc_val inst_addr
 */
 module IFU(
+    input clk,
+    input reset,
+    input pc_en,
+    input ben,
+    input [31:0] b_addr,
     input [31:0] ifu_rdata,
     input ifu_valid,
+    output [31:0] pc_val,
     output [31:0] inst
 );
 assign inst = ifu_valid ? ifu_rdata : 32'b0;
+
+wire [31:0] pc_b_addr;
+wire pc_ben;
+assign pc_ben    = pc_en ? ben   : 1'b1;
+assign pc_b_addr = pc_en ? b_addr : pc_val;
+
+pc #(32,4,32'h80000000) my_pc(
+    .clk (clk),
+    .reset (reset),
+    .ben (pc_ben),
+    .b_addr (pc_b_addr),
+    .out (pc_val)
+);
 endmodule
 
 /*
@@ -375,8 +397,8 @@ endmodule
 将数据写入寄存器
 */
 module WBU(
-    input clk,wen,ren,ben,reset,pc_en,
-    input [31:0] b_addr,
+    input clk,wen,ren,reset,
+    input [31:0] pc_val,
     input [4:0] rs1,
     input [4:0] rs2,
     input [4:0] w_addr,
@@ -386,7 +408,6 @@ module WBU(
     input [6:0] opcode,
     output [31:0] r_data0,
     output [31:0] r_data1,
-    output [31:0] pc_val,
     output [31:0] w_data
 );
 
@@ -409,19 +430,6 @@ ram #(5,32) gpr(
     .reset (reset),
     .r_data0 (r_data0),
     .r_data1 (r_data1)
-);
-
-wire [31:0] pc_b_addr;
-wire pc_ben;
-assign pc_ben    = pc_en ? ben   : 1'b1;
-assign pc_b_addr = pc_en ? b_addr : pc_val;
-
-pc #(32,4,32'h80000000) my_pc(
-    .clk (clk),
-    .reset (reset),
-    .ben (pc_ben),
-    .b_addr (pc_b_addr),
-    .out (pc_val)
 );
 
 endmodule
