@@ -62,6 +62,10 @@ end
 `endif
 endmodule
 
+/*
+LFU-IDU-EXU-LSU-WBU
+Reg
+*/
 module NPC(
     input clk,reset,
     input [31:0] inst,
@@ -88,6 +92,7 @@ wire [31:0] b_addr;
 wire reg_en;
 wire [31:0] sum;
 wire [31:0] equal;
+wire [31:0] load_data;
 wire [31:0] imm_i;
 wire [31:0] imm_s;
 wire [31:0] imm_u;
@@ -95,9 +100,10 @@ wire [6:0] opcode;
 wire [2:0] func3;
 wire [31:0] ifu_inst;
 wire is_load;
-wire reg_wen;
+wire ifu_valid;
+wire pc_en;
+wire rf_wen;
 assign is_load = opcode == 7'h03;
-assign reg_wen = wen & commit;
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -126,13 +132,21 @@ always @(posedge clk) begin
 end
 `endif
 
-IFU my_ifu(
+CTRL my_ctrl(
     .clk (clk),
     .reset (reset),
-    .ifu_rdata (inst),
     .is_load (is_load),
-    .inst (ifu_inst),
+    .wen (wen),
+    .ifu_valid (ifu_valid),
+    .pc_en (pc_en),
+    .rf_wen (rf_wen),
     .commit (commit)
+);
+
+IFU my_ifu(
+    .ifu_rdata (inst),
+    .ifu_valid (ifu_valid),
+    .inst (ifu_inst)
 );
 
 IDU my_idu(
@@ -145,15 +159,10 @@ IDU my_idu(
     .pc_val (pc_val),
     .opcode (opcode),
     .func3 (func3),
-    .lsu_rdata (lsu_rdata),
+    .load_data (load_data),
     .r_data1 (r_data1),
-    .lsu_addr (lsu_addr),
-    .lsu_wdata (lsu_wdata),
-    .lsu_wmask (lsu_wmask),
-    .lsu_wen (lsu_wen),
     .rs1 (rs1),
     .rs2 (rs2),
-    .w_data (w_data),
     .w_addr (w_addr),
     .ben (ben),
     .wen (wen),
@@ -172,38 +181,101 @@ EXU my_exu(
     .equal (equal)
 );
 
+LSU my_lsu(
+    .sum (sum),
+    .r_data1 (r_data1),
+    .func3 (func3),
+    .opcode (opcode),
+    .lsu_rdata (lsu_rdata),
+    .lsu_addr (lsu_addr),
+    .lsu_wdata (lsu_wdata),
+    .lsu_wmask (lsu_wmask),
+    .lsu_wen (lsu_wen),
+    .load_data (load_data)
+);
+
 WBU my_wbu(
     .clk (clk),
     .reset (reset),
-    .pc_en (commit),
-    .wen (reg_wen),
+    .pc_en (pc_en),
+    .wen (rf_wen),
     .ren (ren),
     .ben (ben),
     .b_addr (b_addr),
     .rs1 (rs1),
     .rs2 (rs2),
     .w_addr (w_addr),
+    .sum (sum),
+    .imm_u (imm_u),
+    .load_data (load_data),
+    .opcode (opcode),
+    .pc_val (pc_val),
     .w_data (w_data),
     .r_data0 (r_data0),
-    .r_data1 (r_data1),
-    .pc_val (pc_val)
+    .r_data1 (r_data1)
 );
 endmodule
+/*
+负责状态机转移
+*/
+module CTRL(
+    input clk,
+    input reset,
+    input is_load,
+    input wen,
+    output ifu_valid,
+    output pc_en,
+    output rf_wen,
+    output commit
+);
+localparam IDLE = 2'd0, WAIT = 2'd1, MEM = 2'd2;
+reg [1:0] state,next_state;
+always@(*) begin
+    case(state)
+        IDLE: next_state = WAIT;
+        WAIT: next_state = is_load ? MEM : IDLE;
+        MEM:  next_state = IDLE;
+        default: next_state = IDLE;
+    endcase
+end
+always@(posedge clk) begin
+    if(reset)
+        state <= IDLE;
+    else
+        state <= next_state;
+end
+assign ifu_valid = state != IDLE;
+assign commit = (state == WAIT && !is_load) || (state == MEM);
+assign pc_en = commit;
+assign rf_wen = commit && wen;
+endmodule
 
+/*
+取指单元
+维护pc
+输出pc_val inst_addr
+*/
+module IFU(
+    input [31:0] ifu_rdata,
+    input ifu_valid,
+    output [31:0] inst
+);
+assign inst = ifu_valid ? ifu_rdata : 32'b0;
+endmodule
+
+/*
+组合逻辑
+负责连线，译码，
+*/
 module IDU(
     input [31:0] inst,sum,equal,pc_val,
-    input [31:0] lsu_rdata,
+    input [31:0] load_data,
     input [31:0] r_data1,
     output [31:0] imm_i,imm_s,imm_u,
     output [6:0] opcode,
     output [2:0] func3,
-    output [31:0] lsu_addr,
-    output [31:0] lsu_wdata,
-    output [7:0] lsu_wmask,
-    output lsu_wen,
     output [4:0] rs1,
     output [4:0] rs2,
-    output [31:0] w_data,
     output [4:0] w_addr,
     output ben,wen,ren,
     output [31:0] b_addr,
@@ -215,33 +287,9 @@ assign imm_s = inst[31] ? {20'hFFFFF,inst[31:25],inst[11:7]} : {20'h00000,inst[3
 assign imm_u = {inst[31:12],12'b000};
 assign opcode = inst[6:0];
 assign func3 = inst[14:12];
-assign lsu_addr = sum;
-// sw (func3=2): 整字; sb (func3=0): 存 rs2 最低字节, 但要挪到地址对应的字节位
-assign lsu_wdata = (func3 == 3'b000) ? ((r_data1 & 32'hFF) << (8 * sum[1:0])) : r_data1;
-
-wire [7:0] lsu_wmask_raw;
-MuxKeyWithDefault #(3, 3, 8) i0 (lsu_wmask_raw, func3, 8'h0, {
-    3'h0, 8'h01,
-    3'h2, 8'h0F,
-    3'h4, 8'h01
-});
-// sb (func3=0): 写掩码按地址低 2 位偏移, 写到正确的字节
-assign lsu_wmask = (func3 == 3'b000) ? (lsu_wmask_raw << sum[1:0]) : lsu_wmask_raw;
-wire [31:0] load_data;
-assign load_data = (func3 == 3'b010) ? lsu_rdata :                              // lw: 整字
-                   (func3 == 3'b100) ? {24'b0, lsu_rdata[sum[1:0]*8 +: 8]} :    // lbu: 取对应字节并零扩展
-                   32'b0;
 assign rs1 = inst[19:15];
 assign rs2 = inst[24:20];
-MuxKeyWithDefault #(5, 7, 32) i1 (w_data, opcode, sum, {
-    7'h13, sum,
-    7'h67, pc_val + 4,
-    7'h33, sum,
-    7'h37, imm_u,
-    7'h03, load_data
-});
 assign w_addr  = inst[11:7];
-assign lsu_wen = opcode == 7'h23;
 assign ben = opcode == 7'h67 && func3 == 3'b0;
 assign wen = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h37 || opcode == 7'h03;
 assign ren = opcode == 7'h13 || opcode == 7'h67 || opcode == 7'h33 || opcode == 7'h03 || opcode == 7'h23;
@@ -250,6 +298,10 @@ assign reg_en  = 1'b1;
 
 endmodule
 
+/*
+执行单元
+输出运算结果与跳转flag
+*/
 module EXU(
     input [31:0] r_data0,
     input [31:0] r_data1,
@@ -289,17 +341,62 @@ alu #(32) my_equal(
 
 endmodule
 
+module LSU(
+    input [31:0] sum,
+    input [31:0] r_data1,
+    input [2:0] func3,
+    input [6:0] opcode,
+    input [31:0] lsu_rdata,
+    output [31:0] lsu_addr,
+    output [31:0] lsu_wdata,
+    output [7:0] lsu_wmask,
+    output lsu_wen,
+    output [31:0] load_data
+);
+assign lsu_addr = sum;
+assign lsu_wdata = (func3 == 3'b000) ? ((r_data1 & 32'hFF) << (8 * sum[1:0])) : r_data1;
+
+wire [7:0] lsu_wmask_raw;
+MuxKeyWithDefault #(3, 3, 8) i0 (lsu_wmask_raw, func3, 8'h0, {
+    3'h0, 8'h01,
+    3'h2, 8'h0F,
+    3'h4, 8'h01
+});
+assign lsu_wmask = (func3 == 3'b000) ? (lsu_wmask_raw << sum[1:0]) : lsu_wmask_raw;
+assign load_data = (func3 == 3'b010) ? lsu_rdata :
+                   (func3 == 3'b100) ? {24'b0, lsu_rdata[sum[1:0]*8 +: 8]} :
+                   32'b0;
+assign lsu_wen = opcode == 7'h23;
+
+endmodule
+
+/*
+写入单元
+将数据写入寄存器
+*/
 module WBU(
     input clk,wen,ren,ben,reset,pc_en,
     input [31:0] b_addr,
     input [4:0] rs1,
     input [4:0] rs2,
     input [4:0] w_addr,
-    input [31:0] w_data,
+    input [31:0] sum,
+    input [31:0] imm_u,
+    input [31:0] load_data,
+    input [6:0] opcode,
     output [31:0] r_data0,
     output [31:0] r_data1,
-    output [31:0] pc_val
+    output [31:0] pc_val,
+    output [31:0] w_data
 );
+
+MuxKeyWithDefault #(5, 7, 32) i0 (w_data, opcode, sum, {
+    7'h13, sum,
+    7'h67, pc_val + 4,
+    7'h33, sum,
+    7'h37, imm_u,
+    7'h03, load_data
+});
 
 ram #(5,32) gpr(
     .clk (clk),
@@ -327,33 +424,4 @@ pc #(32,4,32'h80000000) my_pc(
     .out (pc_val)
 );
 
-endmodule
-
-module IFU(
-    input clk,
-    input reset,
-    input [31:0] ifu_rdata,
-    input is_load,
-    output [31:0] inst,
-    output commit
-);
-parameter IDLE = 2'd0, WAIT = 2'd1, MEM = 2'd2;
-reg [1:0] state,next_state;
-always@(*) begin
-    case(state)
-        IDLE: next_state = WAIT;
-        WAIT: next_state = is_load ? MEM : IDLE;
-        MEM:  next_state = IDLE;
-        default: next_state = IDLE;
-    endcase
-end
-always@(posedge clk) begin
-    if(reset)
-        state <= IDLE;
-    else
-        state <= next_state;
-end
-wire exe = state == WAIT || state == MEM;
-assign commit = (state == WAIT && !is_load) || (state == MEM);
-assign inst = exe ? ifu_rdata : 32'b0;
 endmodule

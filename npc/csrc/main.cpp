@@ -23,7 +23,7 @@ struct timeval start, end;
 const unsigned long Converter = 1000 * 1000; // 1s == 1000 * 1000 us
 
 unsigned long long get_time() {
-  return commit_cnt / 482;
+  return commit_cnt / 147;
 }
 
 unsigned long long current_time = 0;
@@ -125,7 +125,6 @@ int main(int argc, char *argv[]) {
   reset(10);
   ref_load_mem(M, img_size);
 
-  const long CYCLE_LIMIT = 10000000;
   long cycle = 0;
   long stall = 0;
   int ret = gettimeofday(&start, NULL);
@@ -156,10 +155,7 @@ int main(int argc, char *argv[]) {
       printf("Simulation stop\n");
       break;
     }
-    if (++cycle > CYCLE_LIMIT) {
-      printf("cycle limit (%ld) reached, no diff found\n", CYCLE_LIMIT);
-      break;
-    }
+    cycle++;
   }
   uint32_t *dut_regs = dut.rootp->top__DOT__npc__DOT__my_wbu__DOT__gpr__DOT__mem.data();
   //a0（x10）
