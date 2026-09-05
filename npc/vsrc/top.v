@@ -24,6 +24,9 @@ wire [31:0] lsu_rdata;
 wire [31:0] inst;
 `endif
 
+wire lsu_reqValid;
+reg lsu_respValid;
+
 NPC npc(
     .clk (clk),
     .reset (reset),
@@ -38,25 +41,30 @@ NPC npc(
     .lsu_wdata (lsu_wdata),
     .lsu_wmask (lsu_wmask),
     .lsu_wen (lsu_wen),
-    .lsu_rdata (lsu_rdata)
+    .lsu_rdata (lsu_rdata),
+    .lsu_reqValid (lsu_reqValid),
+    .lsu_respValid (lsu_respValid)
 );
 
 `ifndef SYNTHESIS
 always @(posedge clk) begin
   if (reset)
     inst <= 32'b0;
-  else
+  else if (lsu_reqValid)
     inst <= pmem_read(pc_val);
 end
 
 always @(posedge clk) begin
-  if (reset)
+  if (reset) begin
     lsu_rdata <= 32'b0;
+    lsu_respValid <= 1'b0;
+  end
   else begin
-    lsu_rdata <= (!lsu_wen) ? pmem_read(lsu_addr) : 32'b0;
-    if (lsu_wen) begin
+    lsu_respValid <= lsu_reqValid;
+    if (lsu_reqValid && lsu_wen) //写请求且第一拍
       pmem_write(lsu_addr, lsu_wdata, lsu_wmask);
-    end
+    else if (lsu_reqValid) //读请求且第一拍
+      lsu_rdata <= pmem_read(lsu_addr);
   end
 end
 `endif
@@ -79,6 +87,8 @@ module NPC(
     output [31:0] lsu_wdata,
     output [7:0] lsu_wmask,
     output lsu_wen,
+    output lsu_reqValid,
+    input lsu_respValid,
     input [31:0] lsu_rdata
 );
 wire [4:0] rs1;
@@ -103,7 +113,9 @@ wire is_load;
 wire ifu_valid;
 wire pc_en;
 wire rf_wen;
+wire is_store;
 assign is_load = opcode == 7'h03;
+assign is_store = opcode == 7'h23;
 hex7seg my_seg0(
     .in (r_data1[3:0]),
     .en (reg_en),
@@ -136,7 +148,10 @@ CTRL my_ctrl(
     .clk (clk),
     .reset (reset),
     .is_load (is_load),
+    .is_store (is_store),
     .wen (wen),
+    .lsu_reqValid (lsu_reqValid),
+    .lsu_respValid (lsu_respValid),
     .ifu_valid (ifu_valid),
     .pc_en (pc_en),
     .rf_wen (rf_wen),
@@ -225,7 +240,10 @@ module CTRL(
     input clk,
     input reset,
     input is_load,
+    input is_store,
     input wen,
+    output lsu_reqValid,
+    input lsu_respValid,
     output ifu_valid,
     output pc_en,
     output rf_wen,
@@ -236,8 +254,8 @@ reg [1:0] state,next_state;
 always@(*) begin
     case(state)
         IDLE: next_state = WAIT;
-        WAIT: next_state = is_load ? MEM : IDLE;
-        MEM:  next_state = IDLE;
+        WAIT: next_state = lsu_respValid ? ((is_load || is_store) ? MEM : IDLE) : WAIT;
+        MEM:  next_state = lsu_respValid ? IDLE : MEM;
         default: next_state = IDLE;
     endcase
 end
@@ -247,16 +265,19 @@ always@(posedge clk) begin
     else
         state <= next_state;
 end
-assign ifu_valid = state != IDLE;
-assign commit = (state == WAIT && !is_load) || (state == MEM);
+assign lsu_reqValid = (state == IDLE) || (state == WAIT && (is_load || is_store));
+assign ifu_valid = (state == WAIT || state == MEM) && lsu_respValid;
+assign commit = (state == WAIT && !(is_load || is_store) && lsu_respValid) || (state == MEM && lsu_respValid);
 assign pc_en = commit;
 assign rf_wen = commit && wen;
+
 endmodule
 
 /*
 取指单元
 维护pc
-输出pc_val inst_addr
+输入读取到的inst内容
+输出pc_val inst
 */
 module IFU(
     input clk,
@@ -269,7 +290,7 @@ module IFU(
     output [31:0] pc_val,
     output [31:0] inst
 );
-assign inst = ifu_valid ? ifu_rdata : 32'b0;
+assign inst = ifu_valid ? ifu_rdata : 32'b0; // 组合逻辑，需要执行则赋值为PC，不需要则赋值为0
 
 wire [31:0] pc_b_addr;
 wire pc_ben;
