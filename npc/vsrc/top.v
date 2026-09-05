@@ -54,13 +54,19 @@ always @(posedge clk) begin
     inst <= pmem_read(pc_val);
 end
 
+reg [15:0] lfsr;
+reg [7:0] sr;
 always @(posedge clk) begin
   if (reset) begin
     lsu_rdata <= 32'b0;
     lsu_respValid <= 1'b0;
+    lfsr <= 16'hACE1;
+    sr <= 8'b0;
   end
   else begin
-    lsu_respValid <= lsu_reqValid;
+    lfsr <= {lfsr[14:0], lfsr[15]^lfsr[13]^lfsr[12]^lfsr[10]};
+    sr <= lsu_reqValid ? (8'b1 << lfsr[2:0]) : {sr[6:0], 1'b0};
+    lsu_respValid <= sr[7];
     if (lsu_reqValid && lsu_wen) //写请求且第一拍
       pmem_write(lsu_addr, lsu_wdata, lsu_wmask);
     else if (lsu_reqValid) //读请求且第一拍

@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
       commit_cnt++;
       ref_inst_cycle();
     }
-    else if (++stall > 8) {
+    else if (++stall > 1000) {
       printf("no commit for %ld cycles, simulation stuck\n", stall);
       break;
     }
