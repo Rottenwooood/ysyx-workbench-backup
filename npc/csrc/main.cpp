@@ -10,6 +10,7 @@
 #define PMEM_BASE  0x80000000u
 #define PMEM_SIZE  (128u * 1024u * 1024u)
 
+extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 static TOP_NAME dut;
 static VerilatedFstC* tfp = NULL;
 static unsigned long long sim_time = 0;
@@ -143,10 +144,10 @@ int main(int argc, char *argv[]) {
       break;
     }
 
-    // DUT GPR: top.npc.my_wbu.gpr.mem, see generated Vtop___024root.h
-    uint32_t *dut_regs = dut.rootp->top__DOT__npc__DOT__my_wbu__DOT__gpr__DOT__mem.data();
+    // DUT GPR: top.cpu.my_wbu.gpr.mem, see generated Vtop___024root.h
+    uint32_t *dut_regs = dut.rootp->top__DOT__cpu__DOT__my_wbu__DOT__gpr__DOT__mem.data();
     uint32_t *ref_regs = ref_get_regs();
-    uint32_t dut_pc = dut.rootp->top__DOT__pc_val;
+    uint32_t dut_pc = dut.pc_val;
     uint32_t ref_pc = ref_get_pc();
 
     int gpr_is_diff = check_regs(dut_regs, ref_regs);
@@ -157,7 +158,7 @@ int main(int argc, char *argv[]) {
     }
     cycle++;
   }
-  uint32_t *dut_regs = dut.rootp->top__DOT__npc__DOT__my_wbu__DOT__gpr__DOT__mem.data();
+  uint32_t *dut_regs = dut.rootp->top__DOT__cpu__DOT__my_wbu__DOT__gpr__DOT__mem.data();
   //a0（x10）
   if (dut_regs[10] != 0) {
     printf("HIT BAD TRAP\n");

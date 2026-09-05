@@ -11,20 +11,34 @@ else
 endif
 
 # ---- NVBoard 相关配置 ----
-TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?=
 
-VERILATOR_CFLAGS += -MMD --build -cc \
-				-O3 --x-assign fast --x-initial fast --noassert --trace-fst
+# ---- ysyxSoC 外设 ----
+PERIP_DIR = ../ysyxSoC/perip
+PERIP_SRCS = $(shell find $(abspath $(PERIP_DIR)) -name "*.v" -o -name "*.sv")
+INC_PATH += $(abspath ../ysyxSoC/perip/uart16550/rtl) $(abspath ../ysyxSoC/perip/spi/rtl)
 
-# ---- 仿真模式选择: 默认 difftest, make BOARD=1 使用 NVBoard ----
+VERILATOR_CFLAGS += -MMD --build -cc \
+				-O3 --x-assign fast --x-initial fast --noassert --trace-fst \
+				--timescale "1ns/1ns" --no-timing \
+				-D__VERILOG__ -DPDK_BEHAV -D__UART_TO_CONSOLE__ \
+				-Wno-TIMESCALEMOD -Wno-PINMISSING
+
+# ---- 仿真模式: 默认 ysyxSoC(SimTop), make DIFFTEST=1 独立CPU仿真, make BOARD=1 NVBoard ----
 BOARD ?= 0
+DIFFTEST ?= 0
 ifeq ($(BOARD),1)
+  TOPNAME = top
   MAIN_SRC = nvboard_main.cpp
   BIN = $(BUILD_DIR)/$(TOPNAME)-nvboard
-else
+else ifeq ($(DIFFTEST),1)
+  TOPNAME = top
   MAIN_SRC = main.cpp
+  BIN = $(BUILD_DIR)/$(TOPNAME)
+else
+  TOPNAME = SimTop
+  MAIN_SRC = soc_main.cpp
   BIN = $(BUILD_DIR)/$(TOPNAME)
 endif
 
@@ -32,7 +46,13 @@ BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 
 # 待加载的程序镜像, 可通过 make sim IMG=xxx.bin 覆盖
-IMG ?= $(abspath ../am-kernels/tests/cpu-tests/build/dummy-minirv-npc.bin)
+ifeq ($(BOARD),1)
+  IMG ?= $(abspath ../am-kernels/tests/cpu-tests/build/dummy-minirv-npc.bin)
+else ifeq ($(DIFFTEST),1)
+  IMG ?= $(abspath ../am-kernels/tests/cpu-tests/build/dummy-minirv-npc.bin)
+else
+  IMG ?= $(abspath ../ysyxSoC/ready-to-run/minirv/hello-minirv-ysyxsoc.bin)
+endif
 
 $(shell mkdir -p $(BUILD_DIR))
 
@@ -44,12 +64,17 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
-VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
+VSRCS = $(shell find $(abspath ./vsrc) -name "*.v") $(PERIP_SRCS) $(abspath ../ysyxSoC/ready-to-run/minirv/ElaborateTop.v)
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
-# 两个 main 不能同时编译, 只保留当前模式选中的那个
-CSRCS := $(filter-out %main.cpp, $(CSRCS))
+# 多个 main 不能同时编译, 只保留当前模式选中的那个
+CSRCS := $(filter-out %main.cpp %minirvEMU.cpp, $(CSRCS))
 CSRCS += $(abspath ./csrc)/$(MAIN_SRC)
+ifeq ($(DIFFTEST),1)
+CSRCS += $(abspath ./csrc)/minirvEMU.cpp
+endif
+ifeq ($(BOARD),1)
 CSRCS += $(SRC_AUTO_BIND)
+endif
 
 # rules for NVBoard
 include $(NVBOARD_HOME)/scripts/nvboard.mk
@@ -62,6 +87,7 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
+		$(addprefix -I, $(INC_PATH)) \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
@@ -82,7 +108,7 @@ run: $(BIN)
 
 lint:
 	$(VERILATOR) --lint-only $(VSRCS) \
-		--top-module $(TOPNAME) $(addprefix -I, $(INC_PATH))
+		--top-module $(TOPNAME) $(addprefix -I, $(INC_PATH)) -Wno-TIMESCALEMOD
 
 clean:
 	rm -rf $(BUILD_DIR)
